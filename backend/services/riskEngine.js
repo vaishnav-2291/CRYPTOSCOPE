@@ -6,16 +6,46 @@ function calculateRisk(data) {
     let riskFactors = [];
 
 
+    let breakdown = {
+
+        transactionRisk: 0,
+
+        balanceRisk: 0,
+
+        transactionPatternRisk: 0,
+
+        activityRisk: 0
+
+    };
+
+
 
     // =====================================
     // Transaction Activity Analysis
     // =====================================
 
 
-    if (data.n_tx > 5000) {
+    if (data.n_tx > 10000) {
+
+
+        riskScore += 40;
+
+        breakdown.transactionRisk = 40;
+
+
+        riskFactors.push(
+            "Extremely high transaction activity detected"
+        );
+
+
+    }
+
+    else if (data.n_tx > 5000) {
 
 
         riskScore += 30;
+
+        breakdown.transactionRisk = 30;
 
 
         riskFactors.push(
@@ -30,6 +60,8 @@ function calculateRisk(data) {
 
         riskScore += 20;
 
+        breakdown.transactionRisk = 20;
+
 
         riskFactors.push(
             "High transaction frequency detected"
@@ -43,9 +75,11 @@ function calculateRisk(data) {
 
         riskScore += 10;
 
+        breakdown.transactionRisk = 10;
+
 
         riskFactors.push(
-            "Active wallet transaction pattern"
+            "Active wallet transaction pattern detected"
         );
 
 
@@ -56,6 +90,8 @@ function calculateRisk(data) {
 
         riskScore += 5;
 
+        breakdown.transactionRisk = 5;
+
 
     }
 
@@ -64,7 +100,7 @@ function calculateRisk(data) {
 
 
     // =====================================
-    // Balance Analysis
+    // Balance Risk Analysis
     // =====================================
 
 
@@ -73,9 +109,11 @@ function calculateRisk(data) {
 
         riskScore += 25;
 
+        breakdown.balanceRisk = 25;
+
 
         riskFactors.push(
-            "Large BTC balance detected"
+            "Very large BTC balance detected"
         );
 
 
@@ -85,6 +123,8 @@ function calculateRisk(data) {
 
 
         riskScore += 15;
+
+        breakdown.balanceRisk = 15;
 
 
         riskFactors.push(
@@ -98,8 +138,10 @@ function calculateRisk(data) {
 
 
 
+
+
     // =====================================
-    // Incoming vs Outgoing Pattern
+    // Incoming / Outgoing Pattern
     // =====================================
 
 
@@ -114,6 +156,8 @@ function calculateRisk(data) {
 
         riskScore += 15;
 
+        breakdown.transactionPatternRisk = 15;
+
 
         riskFactors.push(
             "Large incoming transaction pattern detected"
@@ -125,8 +169,9 @@ function calculateRisk(data) {
 
 
 
+
     // =====================================
-    // Low Activity Wallet
+    // Wallet Activity Behaviour
     // =====================================
 
 
@@ -135,9 +180,11 @@ function calculateRisk(data) {
 
         riskScore += 5;
 
+        breakdown.activityRisk = 5;
+
 
         riskFactors.push(
-            "Low wallet activity"
+            "Low wallet activity detected"
         );
 
 
@@ -159,6 +206,7 @@ function calculateRisk(data) {
 
 
     }
+
 
 
 
@@ -193,8 +241,10 @@ function calculateRisk(data) {
 
 
 
+
+
     // =====================================
-    // AI Report
+    // AI Security Report
     // =====================================
 
 
@@ -207,7 +257,8 @@ function calculateRisk(data) {
 
         aiReport =
 
-        "⚠️ High risk wallet detected. Multiple abnormal transaction patterns and high-value activity found.";
+        "⚠️ High risk wallet detected. The wallet shows abnormal transaction activity, high value movement, or suspicious financial patterns. Immediate monitoring is recommended.";
+
 
 
     }
@@ -218,7 +269,8 @@ function calculateRisk(data) {
 
         aiReport =
 
-        "🟡 Medium risk wallet detected. The wallet shows noticeable activity patterns that require monitoring.";
+        "🟡 Medium risk wallet detected. The wallet demonstrates noticeable activity patterns that should be monitored for unusual behaviour.";
+
 
 
     }
@@ -229,10 +281,13 @@ function calculateRisk(data) {
 
         aiReport =
 
-        "🟢 Low risk wallet detected. Current transaction behaviour appears normal.";
+        "🟢 Low risk wallet detected. The wallet activity appears normal based on current blockchain behaviour analysis.";
+
 
 
     }
+
+
 
 
 
@@ -250,13 +305,22 @@ function calculateRisk(data) {
         riskFactors,
 
 
-        aiReport
+        aiReport,
+
+
+        breakdown,
+
+
+        // keeping old name also
+        scoreBreakdown: breakdown
 
 
     };
 
 
 }
+
+
 
 
 

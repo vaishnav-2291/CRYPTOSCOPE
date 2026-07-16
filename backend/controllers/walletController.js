@@ -27,37 +27,50 @@ exports.fetchWallet = async (req, res) => {
 
 
 
+
         // Save Wallet Scan
 
         const wallet = new Wallet({
 
             user: req.user?.id,
 
+
             address: data.address,
+
 
             balance: data.balance,
 
+
             totalReceived: data.total_received,
 
+
             totalSent: data.total_sent,
+
 
             transactions: data.n_tx,
 
 
+
             riskScore: risk.riskScore,
+
 
             riskLevel: risk.riskLevel,
 
 
             riskFactors: risk.riskFactors,
 
-            aiReport: risk.aiReport
+
+            aiReport: risk.aiReport,
+
+
+            scoreBreakdown: risk.breakdown
 
         });
 
 
 
         await wallet.save();
+
 
 
 
@@ -100,8 +113,10 @@ exports.fetchWallet = async (req, res) => {
             riskFactors: risk.riskFactors,
 
 
-            aiReport: risk.aiReport
+            aiReport: risk.aiReport,
 
+
+            breakdown: risk.breakdown
 
         });
 
@@ -111,6 +126,7 @@ exports.fetchWallet = async (req, res) => {
 
 
         console.error("Wallet Error:", err.message);
+
 
 
         res.status(500).json({
@@ -125,6 +141,9 @@ exports.fetchWallet = async (req, res) => {
     }
 
 };
+
+
+
 
 
 
@@ -144,11 +163,13 @@ exports.getHistory = async (req,res)=>{
 
             user:req.user.id
 
-        }).sort({
+        })
+        .sort({
 
             createdAt:-1
 
         });
+
 
 
 
@@ -168,6 +189,7 @@ exports.getHistory = async (req,res)=>{
         console.error(err);
 
 
+
         res.status(500).json({
 
             success:false,
@@ -181,6 +203,10 @@ exports.getHistory = async (req,res)=>{
 
 
 };
+
+
+
+
 
 
 
@@ -205,7 +231,9 @@ exports.getDashboardStats = async(req,res)=>{
 
 
 
+
         const totalScans = wallets.length;
+
 
 
 
@@ -217,11 +245,13 @@ exports.getDashboardStats = async(req,res)=>{
 
 
 
+
         const mediumRiskWallets = wallets.filter(
 
             wallet => wallet.riskLevel === "Medium"
 
         ).length;
+
 
 
 
@@ -234,6 +264,10 @@ exports.getDashboardStats = async(req,res)=>{
 
 
 
+
+
+
+
         const totalTransactions = wallets.reduce(
 
             (sum,wallet)=>sum + wallet.transactions,
@@ -241,6 +275,10 @@ exports.getDashboardStats = async(req,res)=>{
             0
 
         );
+
+
+
+
 
 
 
@@ -270,6 +308,11 @@ exports.getDashboardStats = async(req,res)=>{
 
 
 
+
+
+
+
+
         res.json({
 
             success:true,
@@ -292,15 +335,18 @@ exports.getDashboardStats = async(req,res)=>{
 
             totalTransactions
 
-
         });
+
+
 
 
 
     }catch(err){
 
 
+
         console.error(err);
+
 
 
         res.status(500).json({

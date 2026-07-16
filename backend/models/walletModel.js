@@ -19,9 +19,7 @@ const walletSchema = new mongoose.Schema({
 
         type: String,
 
-        required: true,
-
-        unique: false
+        required: true
 
     },
 
@@ -62,19 +60,13 @@ const walletSchema = new mongoose.Schema({
     },
 
 
-    // AI Risk Analysis Fields
+
+    // ===============================
+    // Risk Analysis Data
+    // ===============================
 
 
-    incomingTransactions: {
-
-        type: Number,
-
-        default: 0
-
-    },
-
-
-    outgoingTransactions: {
+    riskScore: {
 
         type: Number,
 
@@ -83,20 +75,11 @@ const walletSchema = new mongoose.Schema({
     },
 
 
-    transactionVolume: {
+    riskLevel: {
 
-        type: Number,
+        type: String,
 
-        default: 0
-
-    },
-
-
-    walletAge: {
-
-        type: Number,
-
-        default: 0
+        default: "Unknown"
 
     },
 
@@ -119,22 +102,50 @@ const walletSchema = new mongoose.Schema({
     },
 
 
-    riskScore: {
+    // ===============================
+    // Risk Score Breakdown
+    // ===============================
 
-        type: Number,
 
-        default: 0
+    scoreBreakdown: {
+
+        transactionRisk: {
+
+            type: Number,
+
+            default: 0
+
+        },
+
+
+        balanceRisk: {
+
+            type: Number,
+
+            default: 0
+
+        },
+
+
+        transactionPatternRisk: {
+
+            type: Number,
+
+            default: 0
+
+        },
+
+
+        activityRisk: {
+
+            type: Number,
+
+            default: 0
+
+        }
 
     },
 
-
-    riskLevel: {
-
-        type: String,
-
-        default: "Unknown"
-
-    },
 
 
     createdAt: {
@@ -149,4 +160,8 @@ const walletSchema = new mongoose.Schema({
 });
 
 
-module.exports = mongoose.model("Wallet", walletSchema);
+
+module.exports = mongoose.model(
+    "Wallet",
+    walletSchema
+);
