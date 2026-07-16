@@ -1,24 +1,47 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
 
-// Force Google DNS
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+// Force Google DNS for MongoDB Atlas SRV resolution
+dns.setServers([
+    "8.8.8.8",
+    "8.8.4.4"
+]);
+
 
 const connectDB = async () => {
+
     try {
-        console.log("1. Starting MongoDB connection...");
-        console.log("2. URI:", process.env.MONGO_URI);
 
-        await mongoose.connect(process.env.MONGO_URI, {
-            serverSelectionTimeoutMS: 10000,
-        });
+        console.log("Connecting to MongoDB...");
 
-        console.log("3. ✅ MongoDB Connected Successfully");
+
+        await mongoose.connect(
+            process.env.MONGO_URI,
+            {
+                serverSelectionTimeoutMS: 10000,
+            }
+        );
+
+
+        console.log("✅ MongoDB Connected Successfully");
+
+
     } catch (err) {
-        console.error("❌ MongoDB Connection Failed");
-        console.error(err);
+
+
+        console.error(
+            "❌ MongoDB Connection Failed:",
+            err.message
+        );
+
+
         process.exit(1);
+
+
     }
+
 };
+
 
 module.exports = connectDB;
