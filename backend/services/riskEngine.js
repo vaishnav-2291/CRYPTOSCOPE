@@ -1,146 +1,267 @@
 function calculateRisk(data) {
 
+
     let riskScore = 0;
 
     let riskFactors = [];
 
 
 
-    // Transaction Activity
+    // =====================================
+    // Transaction Activity Analysis
+    // =====================================
+
 
     if (data.n_tx > 5000) {
 
+
         riskScore += 30;
+
 
         riskFactors.push(
             "Very high transaction activity detected"
         );
 
-    } 
+
+    }
+
     else if (data.n_tx > 1000) {
+
 
         riskScore += 20;
 
+
         riskFactors.push(
-            "High transaction frequency"
+            "High transaction frequency detected"
         );
 
+
     }
+
+    else if (data.n_tx > 100) {
+
+
+        riskScore += 10;
+
+
+        riskFactors.push(
+            "Active wallet transaction pattern"
+        );
+
+
+    }
+
     else {
+
 
         riskScore += 5;
 
+
     }
 
 
 
-    // Balance Activity
 
-    if (data.balance > 100000000) {
+
+    // =====================================
+    // Balance Analysis
+    // =====================================
+
+
+    if (data.balance > 1000) {
+
 
         riskScore += 25;
 
+
         riskFactors.push(
-            "Large wallet balance detected"
+            "Large BTC balance detected"
         );
+
 
     }
 
+    else if (data.balance > 100) {
 
-
-    // Received vs Sent Analysis
-
-    if (data.total_received > data.total_sent * 3) {
 
         riskScore += 15;
 
+
         riskFactors.push(
-            "Large incoming transaction pattern"
+            "High value wallet detected"
         );
+
 
     }
 
 
 
-    // Wallet Activity
 
-    if (data.n_tx < 50) {
+
+    // =====================================
+    // Incoming vs Outgoing Pattern
+    // =====================================
+
+
+    if (
+
+        data.total_received >
+
+        data.total_sent * 3
+
+    ) {
+
+
+        riskScore += 15;
+
+
+        riskFactors.push(
+            "Large incoming transaction pattern detected"
+        );
+
+
+    }
+
+
+
+
+    // =====================================
+    // Low Activity Wallet
+    // =====================================
+
+
+    if (data.n_tx < 10) {
+
 
         riskScore += 5;
+
 
         riskFactors.push(
             "Low wallet activity"
         );
 
+
     }
 
 
 
-    // Risk Limit
+
+
+    // =====================================
+    // Risk Score Limit
+    // =====================================
+
 
     if (riskScore > 100) {
 
+
         riskScore = 100;
+
 
     }
 
+
+
+
+
+    // =====================================
+    // Risk Level
+    // =====================================
 
 
     let riskLevel = "Low";
 
 
+
     if (riskScore >= 70) {
+
 
         riskLevel = "High";
 
-    } 
+
+    }
+
     else if (riskScore >= 40) {
 
+
         riskLevel = "Medium";
+
 
     }
 
 
 
-    let aiReport = "";
+
+
+    // =====================================
+    // AI Report
+    // =====================================
+
+
+    let aiReport;
+
 
 
     if (riskLevel === "High") {
 
+
         aiReport =
-        "⚠️ High risk wallet detected. Multiple suspicious activity patterns found.";
+
+        "⚠️ High risk wallet detected. Multiple abnormal transaction patterns and high-value activity found.";
+
 
     }
+
+
     else if (riskLevel === "Medium") {
 
+
         aiReport =
-        "🟡 Moderate risk detected. Wallet activity requires monitoring.";
+
+        "🟡 Medium risk wallet detected. The wallet shows noticeable activity patterns that require monitoring.";
+
 
     }
+
+
     else {
 
+
         aiReport =
-        "🟢 Wallet activity appears normal.";
+
+        "🟢 Low risk wallet detected. Current transaction behaviour appears normal.";
+
 
     }
+
+
 
 
 
     return {
 
+
         riskScore,
+
 
         riskLevel,
 
+
         riskFactors,
+
 
         aiReport
 
+
     };
+
 
 }
 
 
+
 module.exports = {
+
     calculateRisk
+
 };

@@ -1,8 +1,11 @@
 const express = require("express");
-
 const router = express.Router();
-
 const axios = require("axios");
+
+
+// =====================================
+// LIVE CRYPTO MARKET
+// =====================================
 
 router.get("/market", async (req, res) => {
 
@@ -26,7 +29,7 @@ router.get("/market", async (req, res) => {
 
     catch (err) {
 
-        console.error(err.message);
+        console.error("Market API Error:", err.message);
 
         res.status(500).json({
 
@@ -39,5 +42,66 @@ router.get("/market", async (req, res) => {
     }
 
 });
+
+
+
+// =====================================
+// LIVE CRYPTO NEWS
+// =====================================
+
+router.get("/news", async (req, res) => {
+
+    try {
+
+        const response = await axios.get(
+
+            "https://gnews.io/api/v4/search",
+
+            {
+
+                params: {
+
+                    q: "cryptocurrency OR bitcoin OR ethereum",
+
+                    lang: "en",
+
+                    country: "us",
+
+                    max: 10,
+
+                    token: process.env.GNEWS_API_KEY
+
+                }
+
+            }
+
+        );
+
+        res.json({
+
+            success: true,
+
+            articles: response.data.articles
+
+        });
+
+    }
+
+    catch (err) {
+
+        console.error("GNews Error:", err.response?.data || err.message);
+
+        res.status(500).json({
+
+            success: false,
+
+            error: "Failed to fetch crypto news"
+
+        });
+
+    }
+
+});
+
 
 module.exports = router;

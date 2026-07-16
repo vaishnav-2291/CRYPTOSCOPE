@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import DashboardCharts from "./DashboardCharts";
 
+
 function DashboardStats() {
+
 
   const [stats, setStats] = useState({
 
@@ -20,6 +22,9 @@ function DashboardStats() {
   });
 
 
+
+
+
   useEffect(() => {
 
     fetchStats();
@@ -28,13 +33,18 @@ function DashboardStats() {
 
 
 
+
+
   const fetchStats = async () => {
+
 
     try {
 
 
       const response = await fetch(
+
         "/api/wallet/dashboard/stats",
+
         {
 
           headers: {
@@ -44,10 +54,13 @@ function DashboardStats() {
           },
 
         }
+
       );
 
 
+
       const data = await response.json();
+
 
 
       if(data.success){
@@ -57,18 +70,92 @@ function DashboardStats() {
       }
 
 
-    } catch(error){
+
+    }
+
+    catch(error){
+
 
       console.error(error);
 
+
     }
+
 
   };
 
 
 
 
+
+
+
+  const getRiskLevel = (score) => {
+
+
+    if(score >= 70){
+
+      return "HIGH RISK";
+
+    }
+
+
+    else if(score >= 40){
+
+      return "MEDIUM RISK";
+
+    }
+
+
+    else{
+
+      return "LOW RISK";
+
+    }
+
+
+  };
+
+
+
+
+
+
+
+  const getRiskColor = (score) => {
+
+
+    if(score >= 70){
+
+      return "text-red-400";
+
+    }
+
+
+    else if(score >= 40){
+
+      return "text-yellow-400";
+
+    }
+
+
+    else{
+
+      return "text-green-400";
+
+    }
+
+
+  };
+
+
+
+
+
+
+
   const cards = [
+
 
     {
 
@@ -81,6 +168,7 @@ function DashboardStats() {
       color:"text-cyan-400"
 
     },
+
 
 
     {
@@ -96,6 +184,7 @@ function DashboardStats() {
     },
 
 
+
     {
 
       title:"Average Risk Score",
@@ -107,6 +196,7 @@ function DashboardStats() {
       color:"text-yellow-400"
 
     },
+
 
 
     {
@@ -127,30 +217,54 @@ function DashboardStats() {
 
 
 
+
+
   return (
 
     <>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+
+      <div className="
+        grid
+        grid-cols-1
+        md:grid-cols-2
+        xl:grid-cols-4
+        gap-6
+        mb-10
+      ">
+
 
 
         {cards.map((item,index)=>(
+
 
 
           <div
 
             key={index}
 
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-cyan-400/50 transition"
+            className="
+              bg-white/5
+              backdrop-blur-xl
+              border
+              border-white/10
+              rounded-2xl
+              p-6
+              hover:border-cyan-400/50
+              transition
+            "
 
           >
+
 
 
             <div className="flex items-center justify-between">
 
 
+
               <div>
+
 
 
                 <p className="text-gray-400 text-sm">
@@ -160,6 +274,7 @@ function DashboardStats() {
                 </p>
 
 
+
                 <h2 className={`text-3xl font-bold mt-3 ${item.color}`}>
 
                   {item.value}
@@ -167,7 +282,11 @@ function DashboardStats() {
                 </h2>
 
 
+
               </div>
+
+
+
 
 
               <div className="text-5xl">
@@ -177,20 +296,128 @@ function DashboardStats() {
               </div>
 
 
+
             </div>
+
 
 
           </div>
 
 
+
         ))}
+
 
 
       </div>
 
 
 
+
+
+
+
+
+      {/* RISK GAUGE METER */}
+
+
+
+      <div className="
+        bg-white/5
+        backdrop-blur-xl
+        border
+        border-white/10
+        rounded-2xl
+        p-8
+        mb-10
+      ">
+
+
+
+        <h2 className="text-2xl font-bold text-white text-center">
+
+          🛡️ Wallet Risk Score
+
+        </h2>
+
+
+
+
+        <div className="flex flex-col items-center mt-8">
+
+
+
+
+
+          <div className="
+            w-48
+            h-48
+            rounded-full
+            border-8
+            border-cyan-400
+            flex
+            items-center
+            justify-center
+          ">
+
+
+
+            <div className="text-center">
+
+
+
+              <h1 className="text-5xl font-bold text-white">
+
+                {stats.averageRiskScore}
+
+              </h1>
+
+
+
+              <p className="text-gray-400">
+
+                /100
+
+              </p>
+
+
+
+            </div>
+
+
+
+
+          </div>
+
+
+
+
+
+
+          <h3 className={`text-2xl font-bold mt-6 ${getRiskColor(stats.averageRiskScore)}`}>
+
+            {getRiskLevel(stats.averageRiskScore)}
+
+          </h3>
+
+
+
+
+
+
+        </div>
+
+
+
+      </div>
+
+
+
+
+
+
       <DashboardCharts stats={stats} />
+
 
 
     </>
@@ -198,6 +425,7 @@ function DashboardStats() {
   );
 
 }
+
 
 
 export default DashboardStats;

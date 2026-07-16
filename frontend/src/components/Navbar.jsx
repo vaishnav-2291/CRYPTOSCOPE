@@ -10,9 +10,6 @@ function Navbar() {
 
   const [user,setUser] = useState(null);
 
-  const [menu,setMenu] = useState(false);
-
-
 
   const token = localStorage.getItem("token");
 
@@ -50,7 +47,7 @@ function Navbar() {
         headers:{
 
 
-          Authorization:token
+          Authorization: token
 
 
         }
@@ -103,7 +100,7 @@ function Navbar() {
 
 
 
-  const logout=()=>{
+  const logout = ()=>{
 
 
     localStorage.removeItem("token");
@@ -127,7 +124,6 @@ function Navbar() {
   return (
 
 
-
 <nav className="
 w-full
 fixed
@@ -139,6 +135,7 @@ backdrop-blur-xl
 border-b
 border-white/10
 ">
+
 
 
 
@@ -184,6 +181,7 @@ text-cyan-400
 
 
 
+
 <div className="
 hidden
 md:flex
@@ -192,14 +190,24 @@ text-gray-300
 ">
 
 
-<a href="#home" className="hover:text-cyan-400">
+
+<Link 
+to="/"
+className="hover:text-cyan-400"
+>
 
 Home
 
-</a>
+</Link>
 
 
-<a href="#wallet" className="hover:text-cyan-400">
+
+
+
+<a 
+href="#wallet"
+className="hover:text-cyan-400"
+>
 
 Wallet
 
@@ -207,7 +215,12 @@ Wallet
 
 
 
-<a href="#stats" className="hover:text-cyan-400">
+
+
+<a 
+href="#stats"
+className="hover:text-cyan-400"
+>
 
 Dashboard
 
@@ -215,15 +228,36 @@ Dashboard
 
 
 
-<a href="#market" className="hover:text-cyan-400">
+
+
+<Link
+to="/history"
+className="hover:text-cyan-400"
+>
+
+History
+
+</Link>
+
+
+
+
+
+
+<a 
+href="#market"
+className="hover:text-cyan-400"
+>
 
 Market
 
 </a>
 
 
-</div>
 
+
+
+</div>
 
 
 
@@ -243,7 +277,9 @@ gap-4
 
 
 
+
 {
+
 token ?
 
 
@@ -252,6 +288,7 @@ token ?
 
 
 <>
+
 
 
 <div className="
@@ -271,7 +308,6 @@ text-white
 
 
 </div>
-
 
 
 
@@ -300,7 +336,9 @@ Logout
 </button>
 
 
+
 </>
+
 
 
 )
@@ -308,6 +346,7 @@ Logout
 
 
 :
+
 
 
 (
@@ -341,8 +380,6 @@ Login
 
 
 </Link>
-
-
 
 
 
@@ -387,6 +424,7 @@ Register
 
 
 
+
 </div>
 
 
@@ -402,9 +440,11 @@ Register
 </nav>
 
 
+
   );
 
 }
+
 
 
 export default Navbar;
