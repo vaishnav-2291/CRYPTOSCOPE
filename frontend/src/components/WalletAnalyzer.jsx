@@ -1,6 +1,7 @@
 import { useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import ScoreBreakdown from "./ScoreBreakdown";
 
 import RiskGauge from "./RiskGauge";
 import TrustScoreCard from "./TrustScoreCard";
@@ -1060,7 +1061,7 @@ function WalletAnalyzer() {
 
 
 }
-
+  
 
 
 export default WalletAnalyzer;
