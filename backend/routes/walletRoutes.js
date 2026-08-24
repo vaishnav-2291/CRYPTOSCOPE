@@ -14,6 +14,9 @@ const {
     addToWatchlist,
     removeFromWatchlist,
     rescanWatchlist,
+    getUserActivities,
+    getSecurityAlerts,
+    simulateSecurityAlert,
 } = require("../controllers/walletController");
 
 const { authMiddleware, optionalAuth } = require("../middleware/authMiddleware");
@@ -23,6 +26,11 @@ const { scanLimiter } = require("../middleware/rateLimiter");
 // Dashboard & History
 router.get("/dashboard/stats", optionalAuth, getDashboardStats);
 router.get("/history/all", optionalAuth, getHistory);
+router.get("/activities", optionalAuth, getUserActivities);
+
+// Security Alerts / Incidents
+router.get("/alerts", optionalAuth, getSecurityAlerts);
+router.post("/alerts/simulate", optionalAuth, simulateSecurityAlert);
 
 // Watchlist Management
 router.get("/watchlist", optionalAuth, getWatchlist);

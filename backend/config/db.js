@@ -1,31 +1,67 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
 
-// Force Google DNS for MongoDB Atlas SRV resolution
+// Force standard DNS resolution if needed for Atlas SRV
 try {
     dns.setServers(["8.8.8.8", "8.8.4.4"]);
 } catch {
-    // Ignore DNS override errors on restricted environments
+    // Ignore on restricted environments
 }
 
+let isConnecting = false;
+
+/**
+ * Connect to MongoDB with robust error handling and connection lifecycle hooks
+ */
 const connectDB = async () => {
-    const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/cryptoscope";
+    const mongoUri = process.env.MONGO_URI;
+
+    if (!mongoUri) {
+        console.error("❌ Fatal: MONGO_URI is not defined in environment variables.");
+        return false;
+    }
+
+    if (mongoose.connection.readyState === 1) {
+        return true;
+    }
+
+    if (isConnecting) {
+        return false;
+    }
 
     try {
-        console.log("Connecting to MongoDB...");
+        isConnecting = true;
+        const sanitizedUri = mongoUri.replace(/:([^@]+)@/, ":****@");
+        console.log(`Connecting to MongoDB Atlas (${sanitizedUri})...`);
+
         await mongoose.connect(mongoUri, {
-            serverSelectionTimeoutMS: 3000,
+            serverSelectionTimeoutMS: 5000,
+            maxPoolSize: 10,
+            minPoolSize: 2,
+            socketTimeoutMS: 45000,
         });
-        console.log("✅ MongoDB Connected Successfully");
+
+        console.log("✅ MongoDB Atlas Connected Successfully & Ready for Persistence");
+        isConnecting = false;
         return true;
     } catch (err) {
-        console.warn(
-            "⚠️ MongoDB Connection Notice: Could not establish connection to Mongo at",
-            mongoUri,
-            "- Running with in-memory state & live blockchain RPC mode."
-        );
+        isConnecting = false;
+        console.error("❌ MongoDB Connection Error:", err.message);
         return false;
     }
 };
+
+// Event Listeners for MongoDB Lifecycle
+mongoose.connection.on("disconnected", () => {
+    console.warn("⚠️ MongoDB Disconnected. Reconnection will be attempted automatically by Mongoose driver.");
+});
+
+mongoose.connection.on("reconnected", () => {
+    console.log("🔄 MongoDB Reconnected Successfully.");
+});
+
+mongoose.connection.on("error", (err) => {
+    console.error("❌ MongoDB Internal Error:", err.message);
+});
 
 module.exports = connectDB;

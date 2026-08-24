@@ -1,19 +1,16 @@
 const Wallet = require("../models/walletModel");
 const User = require("../models/userModel");
+const SecurityAlert = require("../models/alertModel");
+const UserActivity = require("../models/activityModel");
 const { getWalletData, getPaginatedTransactions } = require("../services/blockchainService");
 const { calculateRisk } = require("../services/riskEngine");
 const { lookupEntity } = require("../services/entityService");
 const cacheService = require("../services/cacheService");
+const realtimeService = require("../services/realtimeService");
+const { logActivity } = require("../services/activityService");
 const mongoose = require("mongoose");
 const axios = require("axios");
 
-// In-memory fallback scan store if MongoDB is not connected
-const inMemoryScans = new Map();
-const inMemoryWatchlist = new Map();
-
-/**
- * Check if MongoDB connection is established
- */
 function isDbConnected() {
     return mongoose.connection && mongoose.connection.readyState === 1;
 }
@@ -27,45 +24,51 @@ async function getLiveBtcPriceUSD() {
 
     try {
         const res = await axios.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", {
-            timeout: 1500,
+            timeout: 2000,
         });
         const price = res.data?.bitcoin?.usd || 96420;
-        cacheService.set("live_btc_price_usd", price, 300);
+        cacheService.set("live_btc_price_usd", price, 60);
         return price;
     } catch {
-        cacheService.set("live_btc_price_usd", 96420, 300);
-        return 96420; // Fallback estimate
+        cacheService.set("live_btc_price_usd", 96420, 60);
+        return 96420;
     }
 }
 
 // =============================================================================
-// ANALYZE SINGLE WALLET
+// ANALYZE SINGLE WALLET (Persisted in MongoDB)
 // =============================================================================
 exports.fetchWallet = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({
+            success: false,
+            message: "Database service is currently unavailable. Wallet scan cannot be persisted.",
+        });
+    }
+
     try {
         const address = req.validatedAddress || req.params.address;
         const btcPriceUSD = await getLiveBtcPriceUSD();
 
-        // 1. Fetch live blockchain overview
+        // 1. Fetch live blockchain data from Mempool.space
         const data = await getWalletData(address);
         data.balanceUSD = Number((data.balance * btcPriceUSD).toFixed(2));
 
         // 2. Execute Deterministic 5-Axis Risk Engine
         const risk = calculateRisk(data);
 
-        // 3. Persist scan to MongoDB or in-memory store
-        let savedScanId = "scan_" + Date.now();
-
-        const scanPayload = {
-            _id: savedScanId,
+        // 3. Persist scan document to MongoDB
+        const walletScan = new Wallet({
             user: req.user?.id || null,
             address: data.address,
             network: data.network || "bitcoin",
+            scanType: "SINGLE_SCAN",
             balance: data.balance,
             balanceUSD: data.balanceUSD,
             totalReceived: data.totalReceived,
             totalSent: data.totalSent,
             transactions: data.n_tx,
+            unconfirmedTxCount: data.unconfirmedTxCount || 0,
             riskScore: risk.riskScore,
             riskLevel: risk.riskLevel,
             riskFactors: risk.riskFactors,
@@ -74,28 +77,65 @@ exports.fetchWallet = async (req, res) => {
             ruleTriggers: risk.ruleTriggers,
             entityTag: data.entityTag,
             clusteringInfo: data.clustering,
-            createdAt: new Date(),
+            graphData: data.graphData,
             isPublic: true,
-        };
+            status: "COMPLETED",
+            scannedAt: new Date(),
+        });
 
-        if (isDbConnected()) {
+        const savedScan = await walletScan.save();
+
+        // 4. If High Risk / Exploit / OFAC Triggered, persist SecurityAlert
+        if (risk.riskScore >= 70 || risk.riskLevel === "High" || data.entityTag?.isSanctioned || data.entityTag?.isMixer) {
             try {
-                const walletScan = new Wallet(scanPayload);
-                const saved = await walletScan.save();
-                savedScanId = saved._id.toString();
-            } catch (dbErr) {
-                console.warn("DB save skipped:", dbErr.message);
+                const incidentId = `INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+                const topRule = risk.ruleTriggers[0]?.title || "High Risk Deterministic Anomaly";
+                const primarySeverity = risk.riskScore >= 80 ? "CRITICAL" : "HIGH";
+
+                const alertDoc = new SecurityAlert({
+                    incidentId,
+                    userId: req.user?.id || null,
+                    address: data.address,
+                    threatCategory: data.entityTag?.category || "Heuristic Risk Anomaly",
+                    ruleTrigger: risk.ruleTriggers[0]?.id ? `${risk.ruleTriggers[0].id} (${topRule})` : "RULE-RISK-HIGH",
+                    severity: primarySeverity,
+                    riskScore: risk.riskScore,
+                    status: data.entityTag?.isSanctioned ? "AUTO-QUARANTINED" : "UNDER_INVESTIGATION",
+                    amount: `${Number(data.balance || 0).toFixed(8)} BTC`,
+                    details: risk.aiReport?.split(". ")[0] || "High risk score flagged by 5-axis engine.",
+                });
+
+                await alertDoc.save();
+                realtimeService.emitAlertTriggered(alertDoc);
+            } catch (alertErr) {
+                console.error("Alert save notice:", alertErr.message);
             }
         }
 
-        // Always update in-memory record for fast retrieval
-        inMemoryScans.set(savedScanId, scanPayload);
-        inMemoryScans.set(data.address.toLowerCase(), scanPayload);
+        // 5. Persistent User Activity Logging
+        await logActivity({
+            userId: req.user?.id || null,
+            userEmail: req.user?.email || "guest@cryptoscope.ai",
+            action: "WALLET_SCANNED",
+            resourceType: "WALLET",
+            resourceId: data.address,
+            details: {
+                scanId: savedScan._id.toString(),
+                riskScore: risk.riskScore,
+                riskLevel: risk.riskLevel,
+                balance: data.balance,
+            },
+            status: "SUCCESS",
+            req,
+        });
 
-        // 4. Return enriched response
+        // 6. Emit Real-time Event
+        realtimeService.emitScanCompleted(savedScan);
+
+        // 7. Enriched API Response
         res.json({
             success: true,
-            scanId: savedScanId,
+            scanId: savedScan._id.toString(),
             address: data.address,
             network: data.network,
             balance: data.balance,
@@ -121,7 +161,7 @@ exports.fetchWallet = async (req, res) => {
             scoreBreakdown: risk.breakdown,
             ruleTriggers: risk.ruleTriggers,
             methodology: risk.methodology,
-            scannedAt: data.scannedAt,
+            scannedAt: savedScan.scannedAt,
         });
     } catch (err) {
         res.status(500).json({
@@ -132,9 +172,13 @@ exports.fetchWallet = async (req, res) => {
 };
 
 // =============================================================================
-// BATCH WALLET SCAN (Up to 20 addresses)
+// BATCH WALLET SCAN (Persisted in MongoDB)
 // =============================================================================
 exports.batchScan = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database service unavailable." });
+    }
+
     try {
         const addresses = req.validAddresses || [];
         const btcPriceUSD = await getLiveBtcPriceUSD();
@@ -148,11 +192,35 @@ exports.batchScan = async (req, res) => {
                 try {
                     const data = await getWalletData(addr);
                     const risk = calculateRisk(data);
+                    data.balanceUSD = Number((data.balance * btcPriceUSD).toFixed(2));
+
+                    // Save each scan to MongoDB
+                    const scan = new Wallet({
+                        user: req.user?.id || null,
+                        address: addr,
+                        scanType: "BATCH_SCAN",
+                        balance: data.balance,
+                        balanceUSD: data.balanceUSD,
+                        transactions: data.n_tx,
+                        totalReceived: data.totalReceived,
+                        totalSent: data.totalSent,
+                        riskScore: risk.riskScore,
+                        riskLevel: risk.riskLevel,
+                        scoreBreakdown: risk.breakdown,
+                        ruleTriggers: risk.ruleTriggers,
+                        entityTag: data.entityTag,
+                        isPublic: true,
+                        scannedAt: new Date(),
+                    });
+
+                    await scan.save();
+
                     return {
                         address: addr,
+                        scanId: scan._id.toString(),
                         success: true,
                         balance: data.balance,
-                        balanceUSD: Number((data.balance * btcPriceUSD).toFixed(2)),
+                        balanceUSD: data.balanceUSD,
                         transactions: data.n_tx,
                         totalReceived: data.totalReceived,
                         totalSent: data.totalSent,
@@ -175,6 +243,17 @@ exports.batchScan = async (req, res) => {
             const chunkResults = await Promise.all(chunkPromises);
             results.push(...chunkResults);
         }
+
+        // Audit Log
+        await logActivity({
+            userId: req.user?.id || null,
+            userEmail: req.user?.email || "guest@cryptoscope.ai",
+            action: "BATCH_SCAN_EXECUTED",
+            resourceType: "WALLET",
+            details: { requestedCount: addresses.length, successfulCount: results.filter((r) => r.success).length },
+            status: "SUCCESS",
+            req,
+        });
 
         res.json({
             success: true,
@@ -236,19 +315,19 @@ exports.getWalletGraph = async (req, res) => {
 };
 
 // =============================================================================
-// HISTORICAL RISK TREND FOR WALLET
+// HISTORICAL RISK TREND FOR WALLET (From MongoDB)
 // =============================================================================
 exports.getRiskTrend = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
     try {
         const address = req.params.address;
-        let scans = [];
-
-        if (isDbConnected()) {
-            scans = await Wallet.find({ address })
-                .sort({ createdAt: 1 })
-                .limit(30)
-                .select("riskScore riskLevel createdAt scoreBreakdown balance transactions");
-        }
+        const scans = await Wallet.find({ address })
+            .sort({ createdAt: 1 })
+            .limit(30)
+            .select("riskScore riskLevel createdAt scoreBreakdown balance transactions");
 
         if (!scans || scans.length === 0) {
             const data = await getWalletData(address);
@@ -289,20 +368,23 @@ exports.getRiskTrend = async (req, res) => {
 };
 
 // =============================================================================
-// PUBLIC SHAREABLE REPORT (No Auth Required)
+// PUBLIC SHAREABLE REPORT (Read from MongoDB)
 // =============================================================================
 exports.getPublicReport = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
     try {
         const identifier = req.params.id;
-        let scan = inMemoryScans.get(identifier) || inMemoryScans.get(identifier.toLowerCase());
+        let scan = null;
 
-        if (!scan && isDbConnected()) {
-            if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-                scan = await Wallet.findById(identifier);
-            }
-            if (!scan) {
-                scan = await Wallet.findOne({ address: identifier }).sort({ createdAt: -1 });
-            }
+        if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
+            scan = await Wallet.findById(identifier);
+        }
+
+        if (!scan) {
+            scan = await Wallet.findOne({ address: identifier }).sort({ createdAt: -1 });
         }
 
         if (!scan) {
@@ -346,17 +428,16 @@ exports.getPublicReport = async (req, res) => {
 };
 
 // =============================================================================
-// USER SCAN HISTORY
+// USER SCAN HISTORY (Strictly Isolated to Authenticated User)
 // =============================================================================
 exports.getHistory = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
     try {
-        let history = [];
-        if (isDbConnected()) {
-            const query = req.user ? { user: req.user.id } : {};
-            history = await Wallet.find(query).sort({ createdAt: -1 }).limit(50);
-        } else {
-            history = Array.from(inMemoryScans.values()).slice(0, 50);
-        }
+        const query = req.user ? { user: req.user.id } : { isPublic: true };
+        const history = await Wallet.find(query).sort({ createdAt: -1 }).limit(50);
 
         res.json({
             success: true,
@@ -372,41 +453,39 @@ exports.getHistory = async (req, res) => {
 };
 
 // =============================================================================
-// DASHBOARD STATISTICS
+// DASHBOARD STATISTICS (Aggregated directly from MongoDB)
 // =============================================================================
 exports.getDashboardStats = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
     try {
-        let wallets = [];
-        if (isDbConnected()) {
-            const query = req.user ? { user: req.user.id } : {};
-            wallets = await Wallet.find(query);
-        } else {
-            wallets = Array.from(inMemoryScans.values());
-        }
+        const [totalScans, highRisk, mediumRisk, lowRisk, allScans] = await Promise.all([
+            Wallet.countDocuments(),
+            Wallet.countDocuments({ riskLevel: "High" }),
+            Wallet.countDocuments({ riskLevel: "Medium" }),
+            Wallet.countDocuments({ riskLevel: "Low" }),
+            Wallet.find({}).select("riskScore transactions").limit(100),
+        ]);
 
-        const totalScans = Math.max(wallets.length, 12);
-        const highRiskWallets = wallets.filter((w) => w.riskLevel === "High").length || 3;
-        const mediumRiskWallets = wallets.filter((w) => w.riskLevel === "Medium").length || 4;
-        const lowRiskWallets = wallets.filter((w) => w.riskLevel === "Low").length || 5;
+        const avgScore =
+            allScans.length > 0 ? Math.round(allScans.reduce((sum, w) => sum + (w.riskScore || 0), 0) / allScans.length) : 42;
 
-        const totalTransactions = wallets.reduce((sum, w) => sum + (w.transactions || 0), 14250);
-        const averageRiskScore =
-            wallets.length > 0
-                ? Math.round(wallets.reduce((sum, w) => sum + (w.riskScore || 0), 0) / wallets.length)
-                : 42;
+        const totalTransactions = allScans.reduce((sum, w) => sum + (w.transactions || 0), 0);
 
         res.json({
             success: true,
             totalScans,
-            highRiskWallets,
-            mediumRiskWallets,
-            lowRiskWallets,
-            averageRiskScore,
+            highRiskWallets: highRisk,
+            mediumRiskWallets: mediumRisk,
+            lowRiskWallets: lowRisk,
+            averageRiskScore: avgScore,
             totalTransactions,
             riskDistribution: {
-                high: highRiskWallets,
-                medium: mediumRiskWallets,
-                low: lowRiskWallets,
+                high: highRisk,
+                medium: mediumRisk,
+                low: lowRisk,
             },
         });
     } catch (err) {
@@ -418,31 +497,22 @@ exports.getDashboardStats = async (req, res) => {
 };
 
 // =============================================================================
-// WATCHLIST MANAGEMENT
+// WATCHLIST MANAGEMENT (Strict MongoDB Persistence per User)
 // =============================================================================
 exports.getWatchlist = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    if (!req.user) {
+        return res.json({ success: true, watchlist: [] });
+    }
+
     try {
-        const userId = req.user?.id || "guest";
-        let list = [];
-
-        if (isDbConnected() && req.user) {
-            const user = await User.findById(req.user.id);
-            list = user?.watchlist || [];
-        } else {
-            list = inMemoryWatchlist.get(userId) || [
-                {
-                    address: "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
-                    label: "Binance Cold Storage",
-                    lastRiskScore: 10,
-                    lastRiskLevel: "Low",
-                    addedAt: new Date(),
-                },
-            ];
-        }
-
+        const user = await User.findById(req.user.id);
         res.json({
             success: true,
-            watchlist: list,
+            watchlist: user?.watchlist || [],
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -450,13 +520,20 @@ exports.getWatchlist = async (req, res) => {
 };
 
 exports.addToWatchlist = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    if (!req.user) {
+        return res.status(401).json({ success: false, message: "Authentication required to save watched wallets." });
+    }
+
     try {
         const { address, label } = req.body;
         if (!address) {
             return res.status(400).json({ success: false, message: "Wallet address is required." });
         }
 
-        const userId = req.user?.id || "guest";
         let initialScore = 0;
         let initialLevel = "Low";
 
@@ -466,10 +543,16 @@ exports.addToWatchlist = async (req, res) => {
             initialScore = risk.riskScore;
             initialLevel = risk.riskLevel;
         } catch {
-            // Default baseline
+            // baseline
         }
 
-        const item = {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        user.watchlist = user.watchlist.filter((w) => w.address.toLowerCase() !== address.toLowerCase());
+        const newItem = {
             address,
             label: label || "Monitored Address",
             lastRiskScore: initialScore,
@@ -477,24 +560,28 @@ exports.addToWatchlist = async (req, res) => {
             addedAt: new Date(),
         };
 
-        if (isDbConnected() && req.user) {
-            const user = await User.findById(req.user.id);
-            if (user) {
-                user.watchlist = user.watchlist.filter((w) => w.address.toLowerCase() !== address.toLowerCase());
-                user.watchlist.push(item);
-                await user.save();
-                return res.json({ success: true, message: "Added to watchlist.", watchlist: user.watchlist });
-            }
-        }
+        user.watchlist.push(newItem);
+        await user.save();
 
-        const currentList = inMemoryWatchlist.get(userId) || [];
-        const updated = [...currentList.filter((w) => w.address.toLowerCase() !== address.toLowerCase()), item];
-        inMemoryWatchlist.set(userId, updated);
+        // Audit Logging
+        await logActivity({
+            userId: user._id,
+            userEmail: user.email,
+            action: "WATCHLIST_ADDED",
+            resourceType: "WATCHLIST",
+            resourceId: address,
+            details: { label: newItem.label, score: initialScore },
+            status: "SUCCESS",
+            req,
+        });
+
+        // Real-time Event
+        realtimeService.emitWatchlistUpdated(user._id.toString(), "ADDED", newItem);
 
         res.json({
             success: true,
-            message: "Wallet added to watchlist successfully.",
-            watchlist: updated,
+            message: "Wallet added to watchlist and persisted to MongoDB.",
+            watchlist: user.watchlist,
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -502,27 +589,43 @@ exports.addToWatchlist = async (req, res) => {
 };
 
 exports.removeFromWatchlist = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    if (!req.user) {
+        return res.status(401).json({ success: false, message: "Authentication required." });
+    }
+
     try {
         const address = req.params.address;
-        const userId = req.user?.id || "guest";
+        const user = await User.findById(req.user.id);
 
-        if (isDbConnected() && req.user) {
-            const user = await User.findById(req.user.id);
-            if (user) {
-                user.watchlist = user.watchlist.filter((w) => w.address.toLowerCase() !== address.toLowerCase());
-                await user.save();
-                return res.json({ success: true, message: "Removed from watchlist.", watchlist: user.watchlist });
-            }
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
         }
 
-        const currentList = inMemoryWatchlist.get(userId) || [];
-        const updated = currentList.filter((w) => w.address.toLowerCase() !== address.toLowerCase());
-        inMemoryWatchlist.set(userId, updated);
+        user.watchlist = user.watchlist.filter((w) => w.address.toLowerCase() !== address.toLowerCase());
+        await user.save();
+
+        // Audit Logging
+        await logActivity({
+            userId: user._id,
+            userEmail: user.email,
+            action: "WATCHLIST_REMOVED",
+            resourceType: "WATCHLIST",
+            resourceId: address,
+            status: "SUCCESS",
+            req,
+        });
+
+        // Real-time Event
+        realtimeService.emitWatchlistUpdated(user._id.toString(), "REMOVED", { address });
 
         res.json({
             success: true,
             message: "Wallet removed from watchlist.",
-            watchlist: updated,
+            watchlist: user.watchlist,
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -530,17 +633,22 @@ exports.removeFromWatchlist = async (req, res) => {
 };
 
 exports.rescanWatchlist = async (req, res) => {
-    try {
-        const userId = req.user?.id || "guest";
-        let list = inMemoryWatchlist.get(userId) || [];
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
 
-        if (isDbConnected() && req.user) {
-            const user = await User.findById(req.user.id);
-            if (user) list = user.watchlist;
+    if (!req.user) {
+        return res.status(401).json({ success: false, message: "Authentication required." });
+    }
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
         }
 
         const changes = [];
-        for (let item of list) {
+        for (let item of user.watchlist) {
             try {
                 const data = await getWalletData(item.address);
                 const risk = calculateRisk(data);
@@ -561,16 +669,121 @@ exports.rescanWatchlist = async (req, res) => {
                 item.lastRiskScore = risk.riskScore;
                 item.lastRiskLevel = risk.riskLevel;
             } catch {
-                // Ignore single errors
+                // Ignore individual network blips
             }
         }
 
+        await user.save();
+
+        // Audit Logging
+        await logActivity({
+            userId: user._id,
+            userEmail: user.email,
+            action: "WATCHLIST_RESCANNED",
+            resourceType: "WATCHLIST",
+            details: { count: user.watchlist.length, changesCount: changes.length },
+            status: "SUCCESS",
+            req,
+        });
+
         res.json({
             success: true,
-            message: "Watchlist re-scanned successfully.",
+            message: "Watchlist re-scanned and updated in MongoDB.",
             changesCount: changes.length,
             changes,
-            watchlist: list,
+            watchlist: user.watchlist,
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// =============================================================================
+// USER ACTIVITIES & AUDIT LOGS (From MongoDB)
+// =============================================================================
+exports.getUserActivities = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    try {
+        const query = req.user ? { userId: req.user.id } : {};
+        const activities = await UserActivity.find(query).sort({ createdAt: -1 }).limit(50);
+
+        res.json({
+            success: true,
+            count: activities.length,
+            activities,
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// =============================================================================
+// SECURITY ALERTS / INCIDENTS (From MongoDB)
+// =============================================================================
+exports.getSecurityAlerts = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    try {
+        const alerts = await SecurityAlert.find({}).sort({ createdAt: -1 }).limit(50);
+
+        res.json({
+            success: true,
+            count: alerts.length,
+            alerts,
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+exports.simulateSecurityAlert = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    try {
+        const incidentId = `INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+        const sampleAddress = "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo";
+
+        const alertDoc = new SecurityAlert({
+            incidentId,
+            userId: req.user?.id || null,
+            address: sampleAddress,
+            threatCategory: "High-Velocity Burst Churn Alert",
+            ruleTrigger: "RULE-PAT-02 (Rapid Churn > 50 TXs/hr)",
+            severity: "HIGH",
+            riskScore: 78,
+            status: "AUTO-FLAGGED",
+            amount: "5.45 BTC",
+            details: "Mempool detector captured synthetic anomalous burst transfer pattern targeting unverified counterparty.",
+        });
+
+        await alertDoc.save();
+
+        // Broadcast Real-time Event
+        realtimeService.emitAlertTriggered(alertDoc);
+
+        // Audit Log
+        await logActivity({
+            userId: req.user?.id || null,
+            userEmail: req.user?.email || "guest@cryptoscope.ai",
+            action: "SECURITY_ALERT_TRIGGERED",
+            resourceType: "ALERT",
+            resourceId: incidentId,
+            details: { address: sampleAddress, severity: "HIGH" },
+            status: "SUCCESS",
+            req,
+        });
+
+        res.json({
+            success: true,
+            message: "Synthetic intrusion alert saved to MongoDB and broadcasted via real-time SSE stream.",
+            alert: alertDoc,
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });

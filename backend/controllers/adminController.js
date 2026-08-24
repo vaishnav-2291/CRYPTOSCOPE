@@ -1,7 +1,10 @@
 const Wallet = require("../models/walletModel");
 const User = require("../models/userModel");
+const UserActivity = require("../models/activityModel");
+const SecurityAlert = require("../models/alertModel");
 const { getAllEntities } = require("../services/entityService");
 const cacheService = require("../services/cacheService");
+const realtimeService = require("../services/realtimeService");
 const mongoose = require("mongoose");
 
 function isDbConnected() {
@@ -9,31 +12,30 @@ function isDbConnected() {
 }
 
 /**
- * Platform-wide Admin Statistics
+ * Platform-wide Admin Statistics (From MongoDB)
  */
 exports.getAdminStats = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
     try {
-        let totalScans = 14;
-        let totalUsers = 2;
-        let allWallets = [];
+        const [totalScans, totalUsers, totalActivities, totalAlerts, allWallets] = await Promise.all([
+            Wallet.countDocuments(),
+            User.countDocuments(),
+            UserActivity.countDocuments(),
+            SecurityAlert.countDocuments(),
+            Wallet.find({}).select("riskLevel riskScore createdAt transactions").limit(200),
+        ]);
 
-        if (isDbConnected()) {
-            const [scansCount, usersCount, wallets] = await Promise.all([
-                Wallet.countDocuments().catch(() => 14),
-                User.countDocuments().catch(() => 2),
-                Wallet.find({}).select("riskLevel riskScore createdAt transactions").catch(() => []),
-            ]);
-            totalScans = scansCount;
-            totalUsers = usersCount;
-            allWallets = wallets;
-        }
-
-        const highRisk = allWallets.filter((w) => w.riskLevel === "High").length || 3;
-        const mediumRisk = allWallets.filter((w) => w.riskLevel === "Medium").length || 4;
-        const lowRisk = allWallets.filter((w) => w.riskLevel === "Low").length || 7;
+        const highRisk = allWallets.filter((w) => w.riskLevel === "High").length;
+        const mediumRisk = allWallets.filter((w) => w.riskLevel === "Medium").length;
+        const lowRisk = allWallets.filter((w) => w.riskLevel === "Low").length;
 
         const avgScore =
-            allWallets.length > 0 ? Math.round(allWallets.reduce((s, w) => s + (w.riskScore || 0), 0) / allWallets.length) : 42;
+            allWallets.length > 0
+                ? Math.round(allWallets.reduce((s, w) => s + (w.riskScore || 0), 0) / allWallets.length)
+                : 42;
 
         const entities = getAllEntities();
         const cacheDiagnostics = cacheService.getStats();
@@ -43,6 +45,8 @@ exports.getAdminStats = async (req, res) => {
             platformStats: {
                 totalScans,
                 totalUsers,
+                totalActivities,
+                totalAlerts,
                 averageRiskScore: avgScore,
                 riskDistribution: {
                     high: highRisk,
@@ -50,6 +54,7 @@ exports.getAdminStats = async (req, res) => {
                     low: lowRisk,
                 },
                 entityCatalogCount: entities.length,
+                activeSSEConnections: realtimeService.getClientCount(),
                 cacheDiagnostics,
             },
         });
@@ -78,19 +83,44 @@ exports.getEntityCatalog = async (req, res) => {
  * Get Recent Platform-Wide Scans (Audit Log)
  */
 exports.getAuditScans = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
     try {
-        let scans = [];
-        if (isDbConnected()) {
-            scans = await Wallet.find({})
-                .sort({ createdAt: -1 })
-                .limit(50)
-                .populate("user", "name email");
-        }
+        const scans = await Wallet.find({})
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .populate("user", "name email role");
 
         res.json({
             success: true,
             count: scans.length,
             scans,
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * Get Platform-Wide User Activity Audit Trail
+ */
+exports.getAuditActivities = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    try {
+        const activities = await UserActivity.find({})
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .populate("userId", "name email role");
+
+        res.json({
+            success: true,
+            count: activities.length,
+            activities,
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });

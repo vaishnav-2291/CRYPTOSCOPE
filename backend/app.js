@@ -2,11 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const mongoose = require("mongoose");
 
 const walletRoutes = require("./routes/walletRoutes");
 const authRoutes = require("./routes/authRoutes");
 const cryptoRoutes = require("./routes/cryptoRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const realtimeRoutes = require("./routes/realtimeRoutes");
+const realtimeService = require("./services/realtimeService");
 const { apiLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
@@ -34,16 +37,45 @@ app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 // Global general API rate limiter
 app.use("/api", apiLimiter);
 
-// Health check endpoint
+// Comprehensive Subsystem Health Check Endpoint
 app.get("/api/health", (req, res) => {
-    res.json({
-        success: true,
+    const isDbConnected = mongoose.connection.readyState === 1;
+    const dbState = ["disconnected", "connected", "connecting", "disconnecting"][mongoose.connection.readyState] || "unknown";
+
+    const health = {
+        success: isDbConnected,
         platform: "CryptoScope AI",
         version: "2.0.0",
         engine: "Deterministic 5-Axis Heuristic Security Engine",
-        status: "Operational 🛡️",
+        status: isDbConnected ? "Operational 🛡️" : "Degraded - Database Disconnected",
         timestamp: new Date().toISOString(),
-    });
+        uptimeSeconds: Math.floor(process.uptime()),
+        subsystems: {
+            api: {
+                status: "healthy",
+                port: process.env.PORT || 3000,
+            },
+            database: {
+                provider: "MongoDB Atlas",
+                status: isDbConnected ? "connected" : "disconnected",
+                connectionState: dbState,
+                host: mongoose.connection.host ? mongoose.connection.host.replace(/\..*$/, "") : "unresolved",
+            },
+            realtime: {
+                status: "active",
+                protocol: "Server-Sent Events (SSE)",
+                activeClients: realtimeService.getClientCount(),
+            },
+            heuristicsEngine: {
+                status: "operational",
+                version: "2.0.0",
+                rulesCount: 14,
+            },
+        },
+    };
+
+    const statusCode = isDbConnected ? 200 : 503;
+    res.status(statusCode).json(health);
 });
 
 // =============================================================================
@@ -53,6 +85,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/crypto", cryptoRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/realtime", realtimeRoutes);
 
 // =============================================================================
 // Static Frontend Production Serving & SPA Fallback (Express 5 Compatible)
