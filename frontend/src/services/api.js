@@ -192,9 +192,21 @@ export const subscribeToRealtimeStream = (onMessage) => {
     onMessage({ type: "alert_triggered", data: JSON.parse(e.data) });
   });
 
+  eventSource.addEventListener("market_update", (e) => {
+    onMessage({ type: "market_update", data: JSON.parse(e.data) });
+  });
+
+  eventSource.addEventListener("news_update", (e) => {
+    onMessage({ type: "news_update", data: JSON.parse(e.data) });
+  });
+
   eventSource.addEventListener("activity_logged", (e) => {
     onMessage({ type: "activity_logged", data: JSON.parse(e.data) });
   });
+
+  eventSource.onerror = (err) => {
+    onMessage({ type: "error", error: err });
+  };
 
   return () => {
     eventSource.close();
