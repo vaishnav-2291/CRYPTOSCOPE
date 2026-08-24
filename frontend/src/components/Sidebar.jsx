@@ -44,10 +44,10 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="fixed left-4 top-20 bottom-6 w-60 bg-[#0D1527]/80 backdrop-blur-xl border border-cyan-500/20 rounded-2xl p-4 hidden lg:flex flex-col justify-between z-30 shadow-2xl">
+    <aside className="fixed left-4 top-[100px] bottom-6 w-60 bg-[#0D1527]/90 backdrop-blur-2xl border border-cyan-500/25 rounded-2xl p-4 hidden lg:flex flex-col justify-between z-30 shadow-2xl">
       {/* Navigation Links */}
       <div className="space-y-1.5 overflow-y-auto pr-1">
-        <div className="px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500">
+        <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
           Intelligence Suite
         </div>
 
