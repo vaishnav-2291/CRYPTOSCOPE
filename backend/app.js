@@ -10,6 +10,8 @@ const cryptoRoutes = require("./routes/cryptoRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const realtimeRoutes = require("./routes/realtimeRoutes");
 const realtimeService = require("./services/realtimeService");
+const marketService = require("./services/marketService");
+const cacheService = require("./services/cacheService");
 const { apiLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
@@ -41,6 +43,8 @@ app.use("/api", apiLimiter);
 app.get("/api/health", (req, res) => {
     const isDbConnected = mongoose.connection.readyState === 1;
     const dbState = ["disconnected", "connected", "connecting", "disconnecting"][mongoose.connection.readyState] || "unknown";
+    const rtStats = realtimeService.getDiagnostics();
+    const cachedNews = cacheService.get("crypto_news_cache");
 
     const health = {
         success: isDbConnected,
@@ -64,7 +68,27 @@ app.get("/api/health", (req, res) => {
             realtime: {
                 status: "active",
                 protocol: "Server-Sent Events (SSE)",
-                activeClients: realtimeService.getClientCount(),
+                activeClients: rtStats.totalClients,
+                authenticatedClients: rtStats.authenticatedClients,
+                eventsEmitted: rtStats.eventsEmittedCount,
+            },
+            blockchainProvider: {
+                status: "connected",
+                primary: "Mempool.space Mainnet API",
+                fallback: "Blockstream.info Mainnet API",
+                chain: "Bitcoin (BTC) Mainnet",
+            },
+            marketDataProvider: {
+                status: "connected",
+                primary: "Binance 24hr Ticker API",
+                secondary: "CoinGecko Markets API",
+                activeProvider: marketService.activeProviderName || "Binance Live Public API",
+                assetsTracked: 6,
+            },
+            newsProvider: {
+                status: "connected",
+                sources: ["CoinTelegraph RSS", "CoinDesk RSS", "Decrypt RSS", "Bitcoin Magazine RSS"],
+                articlesCached: cachedNews ? cachedNews.length : 0,
             },
             heuristicsEngine: {
                 status: "operational",

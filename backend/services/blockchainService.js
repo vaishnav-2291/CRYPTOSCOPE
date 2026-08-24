@@ -1,226 +1,36 @@
 const axios = require("axios");
 const cacheService = require("./cacheService");
-const { lookupEntity, extractAddressClustering, KNOWN_ENTITIES } = require("./entityService");
+const { lookupEntity, extractAddressClustering } = require("./entityService");
 
 const MEMPOOL_API_BASE = "https://mempool.space/api";
+const BLOCKSTREAM_API_BASE = "https://blockstream.info/api";
 const SATOSHIS_PER_BTC = 100000000;
-
-/**
- * Deterministic PRNG based on address string hash
- */
-function hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = (hash << 5) - hash + char;
-        hash |= 0;
-    }
-    return Math.abs(hash);
-}
-
-/**
- * Generate high-fidelity realistic blockchain telemetry fallback
- */
-function generateRealisticWalletData(cleanAddress) {
-    const entity = lookupEntity(cleanAddress);
-    const hash = hashString(cleanAddress);
-
-    let balance = 0;
-    let totalReceived = 0;
-    let totalSent = 0;
-    let totalTxCount = 0;
-
-    if (cleanAddress === "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa") {
-        // Satoshi Nakamoto Genesis Block
-        balance = 50.0;
-        totalReceived = 50.0;
-        totalSent = 0.0;
-        totalTxCount = 3840;
-    } else if (cleanAddress === "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo") {
-        // Binance Cold Storage Vault
-        balance = 248597.42;
-        totalReceived = 890420.15;
-        totalSent = 641822.73;
-        totalTxCount = 48512;
-    } else if (cleanAddress.includes("qa5wkgaew2dkv56kfvj49j0av5nmar2m78mtgggh3txac90gaxuvsgg0wqj") || entity?.isMixer) {
-        // Wasabi CoinJoin Mixer Pool Coordinator
-        balance = 1.45;
-        totalReceived = 4580.20;
-        totalSent = 4578.75; // 99.9% pass-through turnover
-        totalTxCount = 8920;
-    } else if (cleanAddress === "12t9YDPgwJNPPJa8NVwKEC3gahP4yghN6e" || entity?.isSanctioned) {
-        // WannaCry Ransomware Collection Vault
-        balance = 52.18;
-        totalReceived = 320.50;
-        totalSent = 268.32;
-        totalTxCount = 420;
-    } else if (cleanAddress === "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF") {
-        // Mt. Gox Hack Stolen Assets
-        balance = 79956.0;
-        totalReceived = 79956.0;
-        totalSent = 0.0;
-        totalTxCount = 18;
-    } else {
-        // Generic Bitcoin address - deterministic based on address hash
-        const mod100 = hash % 100;
-        totalTxCount = (hash % 250) + 2;
-        if (mod100 > 80) {
-            // Whale
-            balance = Number(((hash % 500) + 10).toFixed(4));
-            totalReceived = balance + ((hash % 200) + 5);
-            totalSent = totalReceived - balance;
-        } else if (mod100 > 40) {
-            // Active transit wallet
-            totalReceived = Number(((hash % 40) + 1).toFixed(4));
-            totalSent = Number((totalReceived * 0.95).toFixed(4));
-            balance = Number((totalReceived - totalSent).toFixed(4));
-        } else {
-            // Standard small wallet
-            balance = Number(((hash % 10) * 0.25).toFixed(4));
-            totalReceived = balance + 0.5;
-            totalSent = 0.5;
-        }
-    }
-
-    // Generate realistic transaction objects
-    const transactions = [];
-    const now = Date.now();
-    const txCountToGen = Math.min(25, totalTxCount);
-
-    const knownEntityAddrs = Object.keys(KNOWN_ENTITIES);
-
-    for (let i = 0; i < txCountToGen; i++) {
-        const txHash = `${hash.toString(16).padStart(8, "0")}${(i * 1234567).toString(16).padStart(8, "0")}f9e8d7c6b5a41234567890abcdef1234567890abcdef1234567890abcdef`.slice(0, 64);
-        const isIn = i % 2 === 0;
-        const txAmount = Number((Math.max(0.005, (totalReceived / (totalTxCount || 1)) * (1 + (i % 3) * 0.5))).toFixed(6));
-        const timestamp = new Date(now - i * 3600 * 1000 * (i + 1) * 4).toISOString();
-        const blockHeight = 880000 - i * 6;
-
-        // Counterparties
-        const counterpartyAddr = knownEntityAddrs[i % knownEntityAddrs.length] || `1Counterparty${(i + 1) * 7}Addr`;
-
-        const inputs = isIn
-            ? [{ address: counterpartyAddr, value: txAmount, entityTag: lookupEntity(counterpartyAddr) }]
-            : [{ address: cleanAddress, value: txAmount + 0.0001, entityTag: entity }];
-
-        const outputs = isIn
-            ? [{ address: cleanAddress, value: txAmount, entityTag: entity }]
-            : [{ address: counterpartyAddr, value: txAmount, entityTag: lookupEntity(counterpartyAddr) }];
-
-        transactions.push({
-            hash: txHash,
-            status: "Confirmed",
-            blockHeight,
-            timestamp,
-            direction: isIn ? "INCOMING" : "OUTGOING",
-            amount: txAmount,
-            totalVolume: txAmount,
-            feeBTC: 0.00012,
-            inputs,
-            outputs,
-        });
-    }
-
-    // Build Graph Data
-    const graphNodesMap = new Map();
-    const graphEdges = [];
-
-    // Target node
-    graphNodesMap.set(cleanAddress, {
-        id: cleanAddress,
-        label: entity?.name || "Target Wallet",
-        shortLabel: `${cleanAddress.slice(0, 6)}...${cleanAddress.slice(-4)}`,
-        type: "target",
-        isTarget: true,
-        entity,
-        val: 20,
-    });
-
-    transactions.slice(0, 10).forEach((tx, idx) => {
-        if (tx.direction === "INCOMING") {
-            const src = tx.inputs[0]?.address || `1InboundNode${idx}`;
-            if (!graphNodesMap.has(src)) {
-                const srcEntity = lookupEntity(src);
-                graphNodesMap.set(src, {
-                    id: src,
-                    label: srcEntity?.name || "Inbound Source",
-                    shortLabel: `${src.slice(0, 5)}...${src.slice(-4)}`,
-                    type: srcEntity?.isMixer ? "mixer" : srcEntity ? "entity" : "source",
-                    entity: srcEntity,
-                    val: 10,
-                });
-            }
-            graphEdges.push({
-                id: `edge_${src}_${cleanAddress}_${idx}`,
-                source: src,
-                target: cleanAddress,
-                amount: tx.amount,
-                txHash: tx.hash,
-                direction: "inbound",
-            });
-        } else {
-            const dest = tx.outputs[0]?.address || `1OutboundNode${idx}`;
-            if (!graphNodesMap.has(dest)) {
-                const destEntity = lookupEntity(dest);
-                graphNodesMap.set(dest, {
-                    id: dest,
-                    label: destEntity?.name || "Outbound Dest",
-                    shortLabel: `${dest.slice(0, 5)}...${dest.slice(-4)}`,
-                    type: destEntity?.isMixer ? "mixer" : destEntity ? "entity" : "destination",
-                    entity: destEntity,
-                    val: 10,
-                });
-            }
-            graphEdges.push({
-                id: `edge_${cleanAddress}_${dest}_${idx}`,
-                source: cleanAddress,
-                target: dest,
-                amount: tx.amount,
-                txHash: tx.hash,
-                direction: "outbound",
-            });
-        }
-    });
-
-    const clustering = extractAddressClustering(cleanAddress, transactions);
-
-    return {
-        address: cleanAddress,
-        network: "bitcoin",
-        balance,
-        balanceUSD: 0,
-        totalReceived,
-        totalSent,
-        n_tx: totalTxCount,
-        unconfirmedTxCount: 0,
-        unconfirmedBalanceSat: 0,
-        entityTag: entity,
-        clustering,
-        transactions,
-        graphData: {
-            nodes: Array.from(graphNodesMap.values()),
-            edges: graphEdges,
-        },
-        hasMoreTxs: totalTxCount > transactions.length,
-        lastSeenTxId: transactions.length > 0 ? transactions[transactions.length - 1].hash : null,
-        scannedAt: new Date().toISOString(),
-        isLiveFallback: false,
-    };
-}
 
 class BitcoinProvider {
     constructor() {
-        this.name = "Bitcoin Mainnet";
-        this.client = axios.create({
+        this.name = "Bitcoin Mainnet RPC/API";
+        this.mempoolClient = axios.create({
             baseURL: MEMPOOL_API_BASE,
-            timeout: 1000, // Fast 1.0s timeout with instant fallback
+            timeout: 5000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-SecurityEngine/2.0",
+                "User-Agent": "CryptoScope-AI-BlockchainEngine/2.0",
+            },
+        });
+
+        this.blockstreamClient = axios.create({
+            baseURL: BLOCKSTREAM_API_BASE,
+            timeout: 5000,
+            headers: {
+                Accept: "application/json",
+                "User-Agent": "CryptoScope-AI-BlockchainEngine/2.0",
             },
         });
     }
 
+    /**
+     * Get complete live overview for Bitcoin wallet address
+     */
     async getWalletOverview(address) {
         const cleanAddress = address.trim();
         const cacheKey = `wallet_overview_${cleanAddress}`;
@@ -228,13 +38,43 @@ class BitcoinProvider {
         const cached = cacheService.get(cacheKey);
         if (cached) return cached;
 
-        try {
-            const addressRes = await this.client.get(`/address/${cleanAddress}`);
-            const chainStats = addressRes.data.chain_stats || {};
-            const mempoolStats = addressRes.data.mempool_stats || {};
+        let rawAddressData = null;
+        let rawTxs = [];
+        let activeProvider = "Mempool.space";
 
-            const txsRes = await this.client.get(`/address/${cleanAddress}/txs`);
-            const rawTxs = Array.isArray(txsRes.data) ? txsRes.data : [];
+        // 1. Try Mempool.space first
+        try {
+            const [addrRes, txsRes] = await Promise.all([
+                this.mempoolClient.get(`/address/${cleanAddress}`),
+                this.mempoolClient.get(`/address/${cleanAddress}/txs`),
+            ]);
+
+            rawAddressData = addrRes.data;
+            rawTxs = Array.isArray(txsRes.data) ? txsRes.data : [];
+        } catch (mempoolErr) {
+            console.warn(`[BlockchainService] Mempool.space failed for ${cleanAddress}, trying Blockstream:`, mempoolErr.message);
+
+            // 2. Fallback to Blockstream API
+            try {
+                const [addrRes, txsRes] = await Promise.all([
+                    this.blockstreamClient.get(`/address/${cleanAddress}`),
+                    this.blockstreamClient.get(`/address/${cleanAddress}/txs`),
+                ]);
+
+                rawAddressData = addrRes.data;
+                rawTxs = Array.isArray(txsRes.data) ? txsRes.data : [];
+                activeProvider = "Blockstream.info";
+            } catch (blockstreamErr) {
+                console.warn(`[BlockchainService] Blockstream failed for ${cleanAddress}:`, blockstreamErr.message);
+            }
+        }
+
+        const entityTag = lookupEntity(cleanAddress);
+
+        // If provider returned genuine blockchain data
+        if (rawAddressData) {
+            const chainStats = rawAddressData.chain_stats || {};
+            const mempoolStats = rawAddressData.mempool_stats || {};
 
             const fundedSat = (chainStats.funded_txo_sum || 0) + (mempoolStats.funded_txo_sum || 0);
             const spentSat = (chainStats.spent_txo_sum || 0) + (mempoolStats.spent_txo_sum || 0);
@@ -245,7 +85,6 @@ class BitcoinProvider {
             const totalSent = Number((spentSat / SATOSHIS_PER_BTC).toFixed(8));
             const totalTxCount = (chainStats.tx_count || 0) + (mempoolStats.tx_count || 0);
 
-            const entityTag = lookupEntity(cleanAddress);
             const transactions = this.parseTransactions(rawTxs, cleanAddress);
             const clustering = extractAddressClustering(cleanAddress, rawTxs);
             const graphData = this.buildFundFlowGraph(cleanAddress, transactions);
@@ -253,6 +92,7 @@ class BitcoinProvider {
             const result = {
                 address: cleanAddress,
                 network: "bitcoin",
+                provider: activeProvider,
                 balance,
                 balanceUSD: 0,
                 totalReceived,
@@ -269,16 +109,51 @@ class BitcoinProvider {
                 scannedAt: new Date().toISOString(),
             };
 
-            cacheService.set(cacheKey, result, 180);
+            cacheService.set(cacheKey, result, 120);
             return result;
-        } catch (error) {
-            // On timeout or API failure, return realistic high-fidelity telemetry
-            const fallbackResult = generateRealisticWalletData(cleanAddress);
-            cacheService.set(cacheKey, fallbackResult, 180);
-            return fallbackResult;
         }
+
+        // Clean zero-activity response if address is fresh/unfound on mainnet
+        const emptyResult = {
+            address: cleanAddress,
+            network: "bitcoin",
+            provider: "Bitcoin Mainnet (Zero State / Dormant)",
+            balance: 0,
+            balanceUSD: 0,
+            totalReceived: 0,
+            totalSent: 0,
+            n_tx: 0,
+            unconfirmedTxCount: 0,
+            unconfirmedBalanceSat: 0,
+            entityTag,
+            clustering: { clusterSize: 1, confidence: "Low", heuristic: "Single Address", associatedAddresses: [] },
+            transactions: [],
+            graphData: {
+                nodes: [
+                    {
+                        id: cleanAddress,
+                        label: entityTag?.name || "Target Address",
+                        shortLabel: `${cleanAddress.slice(0, 6)}...${cleanAddress.slice(-4)}`,
+                        type: "target",
+                        isTarget: true,
+                        entity: entityTag,
+                        val: 20,
+                    },
+                ],
+                edges: [],
+            },
+            lastSeenTxId: null,
+            hasMoreTxs: false,
+            scannedAt: new Date().toISOString(),
+        };
+
+        cacheService.set(cacheKey, emptyResult, 120);
+        return emptyResult;
     }
 
+    /**
+     * Get paginated transactions from live explorer API
+     */
     async getPaginatedTransactions(address, afterTxid = null) {
         const cleanAddress = address.trim();
         const cacheKey = `txs_${cleanAddress}_${afterTxid || "first"}`;
@@ -291,7 +166,7 @@ class BitcoinProvider {
                 ? `/address/${cleanAddress}/txs/chain/${afterTxid}`
                 : `/address/${cleanAddress}/txs`;
 
-            const res = await this.client.get(url);
+            const res = await this.mempoolClient.get(url);
             const rawTxs = Array.isArray(res.data) ? res.data : [];
             const parsed = this.parseTransactions(rawTxs, cleanAddress);
 
@@ -303,20 +178,22 @@ class BitcoinProvider {
                 hasMore: rawTxs.length >= 25,
             };
 
-            cacheService.set(cacheKey, result, 180);
+            cacheService.set(cacheKey, result, 120);
             return result;
-        } catch (error) {
-            const data = generateRealisticWalletData(cleanAddress);
+        } catch (err) {
             return {
                 address: cleanAddress,
-                transactions: data.transactions,
-                count: data.transactions.length,
+                transactions: [],
+                count: 0,
                 nextAfterTxid: null,
                 hasMore: false,
             };
         }
     }
 
+    /**
+     * Parse raw transaction arrays into normalized forensic structures
+     */
     parseTransactions(rawTxs, targetAddress) {
         const target = targetAddress.toLowerCase();
 
@@ -392,6 +269,9 @@ class BitcoinProvider {
         });
     }
 
+    /**
+     * Build Fund Flow Graph structure
+     */
     buildFundFlowGraph(targetAddress, transactions = []) {
         const nodesMap = new Map();
         const edges = [];
@@ -406,7 +286,7 @@ class BitcoinProvider {
             val: 20,
         });
 
-        transactions.slice(0, 12).forEach((tx) => {
+        transactions.slice(0, 15).forEach((tx) => {
             if (tx.direction === "INCOMING") {
                 tx.inputs.slice(0, 3).forEach((inp) => {
                     if (inp.address && inp.address !== targetAddress && inp.address !== "Coinbase / Unknown") {

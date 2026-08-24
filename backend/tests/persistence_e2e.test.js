@@ -302,5 +302,66 @@ describe("CryptoScope AI — Full MongoDB Atlas Persistence & Subsystems Test Su
 
         assert.ok(receivedEvents.some((e) => e.includes("Real-time SSE Stream Established")));
     });
+
+    test("12. Genuine Live Cryptocurrency Market API Returns Real Prices & Diagnostics", async () => {
+        const res = await request("GET", "/api/crypto/market");
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.ok(res.body.data.bitcoin, "Must contain Bitcoin quotes");
+        assert.ok(typeof res.body.data.bitcoin.usd === "number");
+        assert.ok(res.body.data.bitcoin.usd > 10000, "Must be real Bitcoin price (> $10k)");
+        assert.ok(res.body.data.ethereum.usd > 500, "Must be real Ethereum price (> $500)");
+        assert.ok(res.body.source.includes("Live") || res.body.source.includes("API"));
+    });
+
+    test("13. Genuine Crypto News RSS Aggregator Normalizes, Deduplicates & Persists to MongoDB", async () => {
+        const res = await request("GET", "/api/crypto/news");
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.ok(Array.isArray(res.body.articles));
+        assert.ok(res.body.articles.length > 0, "Should have genuine news articles");
+
+        const firstArticle = res.body.articles[0];
+        assert.ok(firstArticle.title, "Must have valid article title");
+        assert.ok(firstArticle.url, "Must have valid article URL");
+        assert.ok(firstArticle.source, "Must have valid source");
+    });
+
+    test("14. Strict Multi-User Data Isolation Prevents User B from Accessing User A Data", async () => {
+        // Create User B
+        const userBEmail = `user_b_isolated_${Date.now()}@cryptoscope.ai`;
+        const regB = await request("POST", "/api/auth/register", {
+            name: "User B Isolation Tester",
+            email: userBEmail,
+            password: testPassword,
+            role: "user",
+        });
+
+        assert.strictEqual(regB.status, 201);
+        const userBToken = regB.body.token;
+        const userBId = regB.body.user.id;
+
+        try {
+            // User B requests their scan history
+            const histB = await request("GET", "/api/wallet/history/all", null, userBToken);
+            assert.strictEqual(histB.status, 200);
+            // User B should NOT see User A's private scans
+            assert.strictEqual(histB.body.history.length, 0, "User B should have zero scans initially");
+
+            // User B requests their activities
+            const actB = await request("GET", "/api/wallet/activities", null, userBToken);
+            assert.strictEqual(actB.status, 200);
+            // All activities returned to User B must have User B's ID, none of User A's
+            actB.body.activities.forEach((a) => {
+                assert.strictEqual(a.userId, userBId);
+                assert.notStrictEqual(a.userId, testUserId);
+            });
+        } finally {
+            // Clean up User B
+            await User.findByIdAndDelete(userBId);
+            await UserActivity.deleteMany({ userId: userBId });
+        }
+    });
 });
+
 

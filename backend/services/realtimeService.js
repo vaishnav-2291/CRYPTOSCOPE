@@ -1,17 +1,32 @@
 /**
- * CryptoScope AI — Server-Sent Events (SSE) Real-time Event Broadcaster
+ * CryptoScope AI — Multi-User Isolated Server-Sent Events (SSE) Realtime Broadcaster
  */
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET || "cryptoscope_secret_key_default_2026";
 
 class RealtimeService {
     constructor() {
         this.clients = new Set();
+        this.eventsEmittedCount = 0;
         this.startHeartbeat();
     }
 
     /**
-     * Register a new SSE client connection
+     * Authenticate and register a new SSE client connection
      */
     addClient(req, res, user = null) {
+        // If user wasn't populated by middleware, try extracting token from query
+        let authenticatedUser = user;
+
+        if (!authenticatedUser && req.query.token) {
+            try {
+                const decoded = jwt.verify(req.query.token, JWT_SECRET);
+                authenticatedUser = decoded;
+            } catch {
+                // Keep as guest
+            }
+        }
+
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache, no-transform");
         res.setHeader("Connection", "keep-alive");
@@ -21,9 +36,9 @@ class RealtimeService {
         const client = {
             id: `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             res,
-            userId: user?.id || null,
-            email: user?.email || null,
-            role: user?.role || "guest",
+            userId: authenticatedUser?.id || null,
+            email: authenticatedUser?.email || null,
+            role: authenticatedUser?.role || "guest",
             connectedAt: new Date(),
         };
 
@@ -33,6 +48,8 @@ class RealtimeService {
         this.sendToClient(client, "connected", {
             clientId: client.id,
             status: "Real-time SSE Stream Established 🛡️",
+            authenticated: !!client.userId,
+            user: client.userId ? { id: client.userId, email: client.email, role: client.role } : null,
             timestamp: new Date().toISOString(),
         });
 
@@ -50,13 +67,14 @@ class RealtimeService {
         try {
             client.res.write(`event: ${event}\n`);
             client.res.write(`data: ${JSON.stringify(data)}\n\n`);
+            this.eventsEmittedCount++;
         } catch {
             this.clients.delete(client);
         }
     }
 
     /**
-     * Broadcast event to all connected clients (or filter by userId)
+     * Broadcast event to all clients or filter by userId for strict Multi-User Isolation
      */
     broadcast(event, data, targetUserId = null) {
         const payload = {
@@ -72,17 +90,24 @@ class RealtimeService {
     }
 
     /**
-     * Specific typed emitters triggered AFTER successful database writes
+     * Specific typed emitters triggered strictly AFTER successful database writes
      */
     emitScanCompleted(scan) {
-        this.broadcast("scan_completed", {
-            scanId: scan._id?.toString() || scan.scanId,
-            address: scan.address,
-            riskScore: scan.riskScore,
-            riskLevel: scan.riskLevel,
-            balance: scan.balance,
-            userId: scan.user?.toString() || null,
-        });
+        const targetUserId = scan.user?.toString() || null;
+        // Broadcast to user who scanned, or all if public
+        this.broadcast(
+            "scan_completed",
+            {
+                scanId: scan._id?.toString() || scan.scanId,
+                address: scan.address,
+                riskScore: scan.riskScore,
+                riskLevel: scan.riskLevel,
+                balance: scan.balance,
+                userId: targetUserId,
+                scannedAt: scan.scannedAt || new Date(),
+            },
+            targetUserId
+        );
     }
 
     emitWatchlistUpdated(userId, action, item) {
@@ -98,6 +123,7 @@ class RealtimeService {
     }
 
     emitAlertTriggered(alert) {
+        // High severity security alerts are broadcasted to all active SOC monitors
         this.broadcast("alert_triggered", {
             incidentId: alert.incidentId,
             address: alert.address,
@@ -113,20 +139,25 @@ class RealtimeService {
     }
 
     emitActivityLogged(activity) {
-        this.broadcast("activity_logged", {
-            id: activity._id?.toString(),
-            userId: activity.userId?.toString() || null,
-            userEmail: activity.userEmail,
-            action: activity.action,
-            resourceType: activity.resourceType,
-            resourceId: activity.resourceId,
-            status: activity.status,
-            timestamp: activity.createdAt || new Date(),
-        });
+        const targetUserId = activity.userId?.toString() || null;
+        this.broadcast(
+            "activity_logged",
+            {
+                id: activity._id?.toString(),
+                userId: targetUserId,
+                userEmail: activity.userEmail,
+                action: activity.action,
+                resourceType: activity.resourceType,
+                resourceId: activity.resourceId,
+                status: activity.status,
+                timestamp: activity.createdAt || new Date(),
+            },
+            targetUserId
+        );
     }
 
     /**
-     * Heartbeat keeper
+     * Heartbeat keep-alive every 15 seconds
      */
     startHeartbeat() {
         setInterval(() => {
@@ -137,11 +168,25 @@ class RealtimeService {
                     this.clients.delete(client);
                 }
             });
-        }, 20000);
+        }, 15000);
     }
 
     getClientCount() {
         return this.clients.size;
+    }
+
+    getDiagnostics() {
+        let authCount = 0;
+        this.clients.forEach((c) => {
+            if (c.userId) authCount++;
+        });
+
+        return {
+            totalClients: this.clients.size,
+            authenticatedClients: authCount,
+            guestClients: this.clients.size - authCount,
+            eventsEmittedCount: this.eventsEmittedCount,
+        };
     }
 }
 
