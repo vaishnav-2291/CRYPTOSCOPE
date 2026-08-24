@@ -60,9 +60,19 @@ graph TD
 - **CSV Ledger Export**: Full UTXO transaction history export.
 - **Public Shareable Reports**: Read-only public URLs (`/report/:id`) accessible without login.
 
-### 📈 6. Live Crypto Market & Sparklines
-- **Real-Time Ticker**: CoinGecko live prices for BTC, ETH, and SOL with 24h change and interactive sparklines.
-- **Verified Intelligence News**: Direct feed of blockchain cybersecurity dispatches.
+### 📈 6. Live Crypto Market & 1-Minute Current Affairs
+- **Real-Time 60s Ticker**: CoinGecko live prices for BTC, ETH, SOL, BNB, XRP, and ADA with 24h highs/lows, market cap, and 7-day sparklines.
+- **Current Affairs News Feed**: Up-to-the-minute dynamic headlines with relative timestamps covering security exploits, OFAC sanctions, and whale alerts.
+
+### 🛡️ 7. On-Chain Threat Intelligence Center (`/threat`)
+- **Known Threat Entities Catalog**: Curated intelligence repository tracking state-sponsored APTs (Lazarus Group APT38), ransomware treasuries (WannaCry), CoinJoin mixers (Wasabi, ChipMixer), and flash-loan exploiters.
+- **Threat Vector Filtering**: Filter by State-Sponsored APT, Ransomware, CoinJoin Mixers, Darknet Markets, and Flash-Loan Exploits.
+- **One-Click Target Scan**: Instant deep-dive scan initiation for any known threat address.
+
+### 🚨 8. 24/7 SOC Monitoring Console & Incident SIEM (`/soc`)
+- **Real-Time SIEM Incident Feed**: Continuous intrusion stream showing incident IDs (e.g. `INC-2026-9904`), target addresses, amounts, and automated containment actions (`AUTO-QUARANTINED`, `ESCALATED_L2`).
+- **Interactive Incident Simulator**: Inject real-time synthetic burst attacks and mempool alerts on demand for live presentations.
+- **Forensic Inspection Modal**: Deep-dive audit view displaying triggered rule IDs (e.g. `RULE-ENT-02`), severity scores, and direct investigation workflows.
 
 ---
 
