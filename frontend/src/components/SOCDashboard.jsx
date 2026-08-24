@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getSecurityAlerts, simulateSecurityAlert, subscribeToRealtimeStream } from "../services/api";
 import { formatBtc, formatUsd, truncateAddress } from "../utils/constants";
 import {
   ShieldAlert,
@@ -18,93 +19,61 @@ import {
   Search,
   Sliders,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
-
-const INITIAL_INCIDENTS = [
-  {
-    id: "INC-2026-9904",
-    timestamp: "12s ago",
-    address: "bc1qa5wkgaew2dkv56kfvj49j0av5nmar2m78mtgggh3txac90gaxuvsgg0wqj",
-    threatCategory: "Privacy Mixer / CoinJoin Drain",
-    ruleTrigger: "RULE-ENT-02 (CoinJoin Coordinator Match)",
-    severity: "CRITICAL",
-    riskScore: 84,
-    status: "AUTO-QUARANTINED",
-    amount: "14.25 BTC",
-    details: "Automated zero-knowledge CoinJoin output stripping detected across 12-hop obfuscation peel chain.",
-  },
-  {
-    id: "INC-2026-9903",
-    timestamp: "48s ago",
-    address: "12t9YDPgwJNPPJa8NVwKEC3gahP4yghN6e",
-    threatCategory: "OFAC Sanctions Blacklist Hit",
-    ruleTrigger: "RULE-ENT-01 (OFAC SDN Designated List)",
-    severity: "CRITICAL",
-    riskScore: 98,
-    status: "ESCALATED_L2",
-    amount: "2.80 BTC",
-    details: "Direct UTXO association detected with WannaCry ransomware collection cluster.",
-  },
-  {
-    id: "INC-2026-9902",
-    timestamp: "2m ago",
-    address: "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97",
-    threatCategory: "High-Velocity Pass-Through Churn",
-    ruleTrigger: "RULE-PAT-01 (1:1 Drain Velocity > 95%)",
-    severity: "HIGH",
-    riskScore: 76,
-    status: "UNDER_INVESTIGATION",
-    amount: "85.10 BTC",
-    details: "Incoming funds drained to fresh single-use addresses within 3 confirmation blocks.",
-  },
-  {
-    id: "INC-2026-9901",
-    timestamp: "5m ago",
-    address: "1P5ZEDWTKTFGxQjZphgWPQUpe554WKDfHQ",
-    threatCategory: "Whale Treasury Multi-Sig Rebalance",
-    ruleTrigger: "RULE-BAL-01 (Whale Holdings > 1,000 BTC)",
-    severity: "MEDIUM",
-    riskScore: 48,
-    status: "RESOLVED",
-    amount: "1,200 BTC",
-    details: "Cold storage vault reorganization between verified institutional custodian addresses.",
-  },
-];
 
 const SOCDashboard = () => {
   const navigate = useNavigate();
-  const [incidents, setIncidents] = useState(INITIAL_INCIDENTS);
+  const [incidents, setIncidents] = useState([]);
   const [filterSeverity, setFilterSeverity] = useState("ALL");
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [realtimeActive, setRealtimeActive] = useState(false);
 
-  // Auto-generate synthetic telemetry pulses
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true);
+      const res = await getSecurityAlerts();
+      if (res?.alerts) {
+        setIncidents(res.alerts);
+      }
+    } catch (err) {
+      console.error("Failed to fetch alerts:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate real-time heartbeat
-    }, 10000);
-    return () => clearInterval(interval);
+    fetchAlerts();
+
+    // Subscribe to live SSE Stream for real-time alerts
+    const unsubscribe = subscribeToRealtimeStream((event) => {
+      if (event.type === "connected") {
+        setRealtimeActive(true);
+      } else if (event.type === "alert_triggered") {
+        setIncidents((prev) => [event.data, ...prev]);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const handleSimulateAlert = () => {
-    setIsSimulating(true);
-    setTimeout(() => {
-      const simId = `INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      const newAlert = {
-        id: simId,
-        timestamp: "Just now",
-        address: "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
-        threatCategory: "High-Velocity Burst Churn Alert",
-        ruleTrigger: "RULE-PAT-02 (Rapid Churn > 50 TXs/hr)",
-        severity: "HIGH",
-        riskScore: 78,
-        status: "AUTO-FLAGGED",
-        amount: "5.45 BTC",
-        details: "Mempool detector captured synthetic anomalous burst transfer pattern targeting unverified counterparty.",
-      };
-      setIncidents((prev) => [newAlert, ...prev]);
+  const handleSimulateAlert = async () => {
+    try {
+      setIsSimulating(true);
+      const res = await simulateSecurityAlert();
+      if (res?.alert) {
+        setIncidents((prev) => [res.alert, ...prev.filter((i) => i.incidentId !== res.alert.incidentId)]);
+      }
+    } catch (err) {
+      alert("Failed to simulate alert: " + (err.response?.data?.message || err.message));
+    } finally {
       setIsSimulating(false);
-    }, 600);
+    }
   };
 
   const filteredIncidents = incidents.filter((inc) => {
@@ -137,8 +106,8 @@ const SOCDashboard = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/40 text-cyan-400 text-xs font-mono shadow-[0_0_15px_rgba(6,182,212,0.25)]">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <span>SECURITY OPERATIONS CENTER (SOC) CONSOLE LIVE</span>
+              <span className={`w-2 h-2 rounded-full ${realtimeActive ? "bg-emerald-400 animate-ping" : "bg-cyan-400"}`} />
+              <span>SECURITY OPERATIONS CENTER (SOC) CONSOLE • {realtimeActive ? "SSE STREAM LIVE" : "ONLINE"}</span>
             </div>
 
             <h1 className="text-3xl md:text-5xl font-extrabold font-heading text-white tracking-tight leading-tight">
@@ -146,11 +115,19 @@ const SOCDashboard = () => {
             </h1>
 
             <p className="text-xs md:text-sm text-slate-300 max-w-2xl font-sans leading-relaxed">
-              Continuous UTXO intrusion monitoring, deterministic rule-trigger stream, automated incident triage, and real-time countermeasure dispatch.
+              Continuous UTXO intrusion monitoring, deterministic rule-trigger stream, automated incident triage, and real-time MongoDB incident persistence.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={fetchAlerts}
+              className="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition"
+              title="Refresh Incidents"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </button>
+
             <button
               onClick={handleSimulateAlert}
               disabled={isSimulating}
@@ -168,31 +145,31 @@ const SOCDashboard = () => {
         <div className="cyber-card rounded-2xl p-5 border border-cyan-500/20 space-y-1 relative group">
           <span className="hud-bracket-tl" />
           <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>MEMPOOL PARSE RATE</span>
+            <span>TOTAL INCIDENTS</span>
             <Cpu className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="text-2xl md:text-3xl font-extrabold text-cyan-300 my-2">1,840 tx/s</div>
+          <div className="text-2xl md:text-3xl font-extrabold text-cyan-300 my-2">{incidents.length}</div>
           <span className="text-[11px] text-cyan-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" /> Live Stream Throughput
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" /> Persisted In MongoDB
           </span>
         </div>
 
         <div className="cyber-card rounded-2xl p-5 border border-emerald-500/20 space-y-1 relative group">
           <span className="hud-bracket-tl" />
           <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>NODE HEALTH</span>
+            <span>REAL-TIME SSE</span>
             <Activity className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-3xl font-extrabold text-emerald-400 my-2">99.98%</div>
+          <div className="text-3xl font-extrabold text-emerald-400 my-2">{realtimeActive ? "ONLINE" : "READY"}</div>
           <span className="text-[11px] text-emerald-300 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> 0 Dropped Packets
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Push Event Broadcaster
           </span>
         </div>
 
         <div className="cyber-card rounded-2xl p-5 border border-rose-500/20 space-y-1 relative group">
           <span className="hud-bracket-tl" />
           <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>ACTIVE P1/P2 ALERTS</span>
+            <span>CRITICAL / HIGH</span>
             <AlertTriangle className="w-4 h-4 text-rose-400 animate-pulse" />
           </div>
           <div className="text-3xl font-extrabold text-rose-400 my-2">
@@ -235,7 +212,7 @@ const SOCDashboard = () => {
         </div>
 
         <span className="text-xs font-mono text-slate-400">
-          Showing <span className="text-cyan-400 font-bold">{filteredIncidents.length}</span> Real-Time Events
+          Showing <span className="text-cyan-400 font-bold">{filteredIncidents.length}</span> Persisted Events
         </span>
       </div>
 
@@ -250,72 +227,78 @@ const SOCDashboard = () => {
           <h3 className="text-lg font-bold font-heading text-white flex items-center gap-2">
             <Radio className="w-4 h-4 text-cyan-400 animate-pulse" /> Live Blockchain Intrusion & Incident Stream
           </h3>
-          <span className="text-xs font-mono text-slate-400">SIEM Stream: ONLINE</span>
+          <span className="text-xs font-mono text-slate-400">MongoDB Collection: SecurityAlerts</span>
         </div>
 
-        <div className="space-y-3">
-          {filteredIncidents.map((incident, idx) => (
-            <div
-              key={incident.id}
-              onClick={() => setSelectedIncident(incident)}
-              className="p-4 rounded-2xl bg-slate-950/70 hover:bg-slate-900 border border-white/5 hover:border-cyan-500/40 transition cursor-pointer flex flex-col lg:flex-row lg:items-center justify-between gap-4 group/row shadow-inner"
-            >
-              <div className="flex items-start gap-4">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs font-mono flex-shrink-0 border ${getSeverityStyle(
-                    incident.severity
-                  )}`}
-                >
-                  {incident.severity[0]}
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-                    <span className="text-white font-bold">{incident.id}</span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-slate-400">{incident.timestamp}</span>
-                    <span className={`px-2 py-0.2 rounded text-[10px] font-bold border ${getSeverityStyle(incident.severity)}`}>
-                      {incident.severity}
-                    </span>
-                    <span className="px-2 py-0.2 rounded text-[10px] bg-slate-800 text-cyan-300 font-bold border border-cyan-500/20">
-                      {incident.status}
-                    </span>
+        {filteredIncidents.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-mono text-xs">
+            No incidents found matching current filter. Click "Simulate Live Incident Alert" to inject an intrusion.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredIncidents.map((incident) => (
+              <div
+                key={incident._id || incident.incidentId}
+                onClick={() => setSelectedIncident(incident)}
+                className="p-4 rounded-2xl bg-slate-950/70 hover:bg-slate-900 border border-white/5 hover:border-cyan-500/40 transition cursor-pointer flex flex-col lg:flex-row lg:items-center justify-between gap-4 group/row shadow-inner"
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs font-mono flex-shrink-0 border ${getSeverityStyle(
+                      incident.severity
+                    )}`}
+                  >
+                    {incident.severity[0]}
                   </div>
 
-                  <h4 className="text-sm font-bold text-white group-hover/row:text-cyan-300 transition">
-                    {incident.threatCategory}
-                  </h4>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+                      <span className="text-white font-bold">{incident.incidentId || incident.id}</span>
+                      <span className="text-slate-500">•</span>
+                      <span className="text-slate-400">{new Date(incident.createdAt || Date.now()).toLocaleTimeString()}</span>
+                      <span className={`px-2 py-0.2 rounded text-[10px] font-bold border ${getSeverityStyle(incident.severity)}`}>
+                        {incident.severity}
+                      </span>
+                      <span className="px-2 py-0.2 rounded text-[10px] bg-slate-800 text-cyan-300 font-bold border border-cyan-500/20">
+                        {incident.status}
+                      </span>
+                    </div>
 
-                  <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                    {incident.details}
-                  </p>
+                    <h4 className="text-sm font-bold text-white group-hover/row:text-cyan-300 transition">
+                      {incident.threatCategory}
+                    </h4>
 
-                  <div className="flex items-center gap-2 text-xs font-mono pt-1 text-slate-400">
-                    <span className="text-slate-500">Target Address:</span>
-                    <span className="text-cyan-300">{truncateAddress(incident.address, 8, 8)}</span>
-                    <span className="text-slate-500">|</span>
-                    <span className="text-slate-500">Value:</span>
-                    <span className="text-amber-400 font-bold">{incident.amount}</span>
+                    <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                      {incident.details}
+                    </p>
+
+                    <div className="flex items-center gap-2 text-xs font-mono pt-1 text-slate-400">
+                      <span className="text-slate-500">Target Address:</span>
+                      <span className="text-cyan-300">{truncateAddress(incident.address, 8, 8)}</span>
+                      <span className="text-slate-500">|</span>
+                      <span className="text-slate-500">Value:</span>
+                      <span className="text-amber-400 font-bold">{incident.amount}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 flex-shrink-0 self-end lg:self-center">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/scan?address=${encodeURIComponent(incident.address)}`);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 font-bold text-xs transition border border-cyan-500/40 flex items-center gap-1.5 shadow"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  <span>Investigate</span>
-                </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 flex-shrink-0 self-end lg:self-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/scan?address=${encodeURIComponent(incident.address)}`);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 font-bold text-xs transition border border-cyan-500/40 flex items-center gap-1.5 shadow"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Investigate</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Incident Forensic Inspection Modal */}
@@ -337,8 +320,8 @@ const SOCDashboard = () => {
                   {selectedIncident.severity[0]}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold font-heading text-white">{selectedIncident.id}</h3>
-                  <p className="text-xs font-mono text-slate-400">{selectedIncident.timestamp}</p>
+                  <h3 className="text-lg font-bold font-heading text-white">{selectedIncident.incidentId || selectedIncident.id}</h3>
+                  <p className="text-xs font-mono text-slate-400">{new Date(selectedIncident.createdAt || Date.now()).toLocaleString()}</p>
                 </div>
               </div>
 

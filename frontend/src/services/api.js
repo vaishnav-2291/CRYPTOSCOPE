@@ -102,6 +102,21 @@ export const getScanHistory = async () => {
   return res.data;
 };
 
+export const getUserActivities = async () => {
+  const res = await api.get("/wallet/activities");
+  return res.data;
+};
+
+export const getSecurityAlerts = async () => {
+  const res = await api.get("/wallet/alerts");
+  return res.data;
+};
+
+export const simulateSecurityAlert = async () => {
+  const res = await api.post("/wallet/alerts/simulate");
+  return res.data;
+};
+
 export const getWatchlist = async () => {
   const res = await api.get("/wallet/watchlist");
   return res.data;
@@ -145,6 +160,45 @@ export const getAdminEntities = async () => {
 export const getAdminScans = async () => {
   const res = await api.get("/admin/scans");
   return res.data;
+};
+
+export const getAdminActivities = async () => {
+  const res = await api.get("/admin/activities");
+  return res.data;
+};
+
+/**
+ * Connect to live Real-time SSE Stream
+ */
+export const subscribeToRealtimeStream = (onMessage) => {
+  const token = localStorage.getItem("token");
+  const url = token ? `${API_BASE}/realtime/events?token=${token}` : `${API_BASE}/realtime/events`;
+
+  const eventSource = new EventSource(url);
+
+  eventSource.addEventListener("connected", (e) => {
+    onMessage({ type: "connected", data: JSON.parse(e.data) });
+  });
+
+  eventSource.addEventListener("scan_completed", (e) => {
+    onMessage({ type: "scan_completed", data: JSON.parse(e.data) });
+  });
+
+  eventSource.addEventListener("watchlist_updated", (e) => {
+    onMessage({ type: "watchlist_updated", data: JSON.parse(e.data) });
+  });
+
+  eventSource.addEventListener("alert_triggered", (e) => {
+    onMessage({ type: "alert_triggered", data: JSON.parse(e.data) });
+  });
+
+  eventSource.addEventListener("activity_logged", (e) => {
+    onMessage({ type: "activity_logged", data: JSON.parse(e.data) });
+  });
+
+  return () => {
+    eventSource.close();
+  };
 };
 
 export default api;
