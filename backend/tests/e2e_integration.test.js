@@ -39,7 +39,7 @@ function makeRequest(path, method = "GET", body = null, headers = {}) {
 
 describe("CryptoScope AI End-to-End Live API Integration Tests", () => {
     test("1. Root & Health Check Endpoint", async () => {
-        const res = await makeRequest("/");
+        const res = await makeRequest("/api/health");
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.data.success, true);
         assert.ok(res.data.status.includes("Operational"));
