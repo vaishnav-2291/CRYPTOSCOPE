@@ -1,1067 +1,488 @@
-import { useState } from "react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import ScoreBreakdown from "./ScoreBreakdown";
-
+import React, { useState, useEffect } from "react";
+import { scanWallet, addToWatchlist } from "../services/api";
+import { SAMPLE_WALLETS, formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
 import RiskGauge from "./RiskGauge";
-import TrustScoreCard from "./TrustScoreCard";
-import TransactionTimeline from "./TransactionTimeline";
-import SecurityRecommendation from "./SecurityRecommendation";
-import AILoader from "./AILoader";
+import RiskRadarChart from "./RiskRadarChart";
+import TransactionGraph from "./TransactionGraph";
+import TransactionTable from "./TransactionTable";
+import SecurityReportCard from "./SecurityReportCard";
+import HistoricalRiskTrend from "./HistoricalRiskTrend";
+import ExportReportModal from "./ExportReportModal";
+import {
+  Search,
+  Shield,
+  Layers,
+  FileText,
+  TrendingUp,
+  GitBranch,
+  Eye,
+  Share2,
+  Download,
+  Copy,
+  Check,
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Sparkles,
+  ExternalLink,
+  Users,
+} from "lucide-react";
 
-
-function WalletAnalyzer() {
-
-
-  const [wallet, setWallet] = useState("");
-
-  const [result, setResult] = useState(null);
-
+const WalletAnalyzer = ({ initialAddress = "" }) => {
+  const [addressInput, setAddressInput] = useState(initialAddress || "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo");
   const [loading, setLoading] = useState(false);
+  const [walletResult, setWalletResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview"); // overview, graph, security, transactions, clustering, trend
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [copiedAddr, setCopiedAddr] = useState(false);
+  const [watchlistSuccess, setWatchlistSuccess] = useState(false);
 
-
-
-
-
-
-
-  const analyzeWallet = async () => {
-
-
-
-    if (!wallet) {
-
-
-      alert("Enter wallet address");
-
+  const handleScan = async (targetAddr) => {
+    const addr = (targetAddr || addressInput).trim();
+    if (!addr) {
+      setError("Please enter a valid Bitcoin wallet address.");
       return;
-
-
     }
-
-
-
-
-
 
     try {
-
-
-
       setLoading(true);
-
-      setResult(null);
-
-
-
-
-
-
-      const response = await fetch(`/api/wallet/${wallet}`, {
-
-
-
-        headers: {
-
-
-          Authorization: localStorage.getItem("token"),
-
-
-        },
-
-
-
-      });
-
-
-
-
-
-
-
-      const data = await response.json();
-
-
-
-
-
-
-
-
-      console.log("Response:", data);
-
-
-
-
-
-
-
-      if (!response.ok) {
-
-
-        alert(data.error || "Request Failed");
-
-        return;
-
-
-      }
-
-
-
-
-
-
-
-      setResult(data);
-
-
-
-
-
-
-
-
-    } catch(error) {
-
-
-
-      console.error(error);
-
-      alert("Wallet analysis failed");
-
-
-
-
+      setError(null);
+      const res = await scanWallet(addr);
+      setWalletResult(res);
+      setAddressInput(addr);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to analyze wallet address.");
+      setWalletResult(null);
     } finally {
-
-
-
       setLoading(false);
-
-
-
     }
-
-
-
-
-
   };
 
-
-
-
-
-
-
-
-
-
-
-
-  const downloadPDF = () => {
-
-
-
-    if(!result){
-
-
-
-      alert("Analyze a wallet first!");
-
-      return;
-
-
-
+  useEffect(() => {
+    if (initialAddress) {
+      handleScan(initialAddress);
+    } else if (!walletResult) {
+      handleScan("34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo"); // Default to Binance cold vault demo
     }
-
-
-
-
-
-
-
-    const doc = new jsPDF();
-
-
-
-
-
-
-
-    doc.setFontSize(22);
-
-
-
-    doc.text(
-      "CryptoScope AI",
-      14,
-      20
-    );
-
-
-
-
-
-
-
-    doc.setFontSize(16);
-
-
-
-    doc.text(
-      "Wallet Risk Analysis Report",
-      14,
-      32
-    );
-
-
-
-
-
-
-
-
-    autoTable(doc,{
-
-
-
-
-
-      startY:50,
-
-
-
-
-
-      head:[
-
-        ["Field","Value"]
-
-      ],
-
-
-
-
-
-
-      body:[
-
-
-
-
-        [
-          "Wallet Address",
-          wallet
-        ],
-
-
-
-
-
-        [
-          "Risk Score",
-          `${result.riskScore}/100`
-        ],
-
-
-
-
-
-        [
-          "Risk Level",
-          result.riskLevel
-        ],
-
-
-
-
-
-        [
-          "Transactions",
-          result.transactionCount
-        ],
-
-
-
-
-
-        [
-          "Security",
-          result.security
-        ],
-
-
-
-
-
-      ]
-
-
-
-
-
-    });
-
-
-
-
-
-
-    doc.save(
-      "Wallet_Risk_Report.pdf"
-    );
-
-
-
-
-
+  }, [initialAddress]);
+
+  const handleCopyAddress = () => {
+    if (!walletResult?.address) return;
+    navigator.clipboard.writeText(walletResult.address);
+    setCopiedAddr(true);
+    setTimeout(() => setCopiedAddr(false), 2000);
   };
 
+  const handleAddToWatchlist = async () => {
+    if (!walletResult?.address) return;
+    try {
+      await addToWatchlist(walletResult.address, walletResult.entityTag?.name || "Target Address");
+      setWatchlistSuccess(true);
+      setTimeout(() => setWatchlistSuccess(false), 3000);
+    } catch (err) {
+      alert(err.response?.data?.message || "Please sign in to add wallets to your watchlist.");
+    }
+  };
 
-
-
-
-
-
-
-
-
-
-
-
+  const theme = getRiskTheme(walletResult?.riskLevel || "Low");
+  const breakdown = walletResult?.breakdown || {};
 
   return (
-
-
-
-
-
-    <div className="mt-24 max-w-6xl mx-auto">
-
-
-
-
-
-      <div
-        className="
-          bg-white/5
-          backdrop-blur-xl
-          border
-          border-white/10
-          rounded-3xl
-          p-8
-        "
-      >
-
-
-
-
-
-        <h2
-          className="
-            text-3xl
-            font-bold
-            text-white
-            text-center
-          "
+    <div className="space-y-6">
+      {/* Target Address Input Bar */}
+      <div className="cyber-card rounded-2xl p-4 md:p-6 border border-cyan-500/25">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleScan();
+          }}
+          className="flex flex-col md:flex-row items-stretch md:items-center gap-3"
         >
-
-
-
-          Analyze Wallet Address
-
-
-
-        </h2>
-
-
-
-
-
-
-
-
-        <p
-          className="
-            text-gray-400
-            text-center
-            mt-3
-          "
-        >
-
-
-
-          Enter blockchain wallet address and get AI-powered risk analysis.
-
-
-
-        </p>
-
-
-
-
-
-
-
-
-
-        <div
-          className="
-            mt-8
-            flex
-            flex-col
-            md:flex-row
-            gap-4
-          "
-        >
-
-
-
-
-
-          <input
-
-
-
-
-            type="text"
-
-
-
-
-            value={wallet}
-
-
-
-
-            onChange={(e)=>setWallet(e.target.value)}
-
-
-
-
-
-
-            placeholder="Enter BTC Wallet Address..."
-
-
-
-
-
-
-            className="
-              flex-1
-              px-6
-              py-4
-              rounded-xl
-              bg-slate-900
-              border
-              border-cyan-400/30
-              text-white
-              outline-none
-            "
-
-
-
-
-          />
-
-
-
-
-
-
-
-          <button
-
-
-
-
-            onClick={analyzeWallet}
-
-
-
-
-            className="
-              px-8
-              py-4
-              rounded-xl
-              bg-cyan-500
-              hover:bg-cyan-400
-              text-black
-              font-bold
-            "
-
-
-
-
-          >
-
-
-
-
-
-
-            {loading ? "Analyzing..." : "Analyze"}
-
-
-
-
-
-
-          </button>
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-        {
-
-          loading && (
-
-
-
-            <AILoader />
-
-
-
-          )
-
-
-        }
-
-
-
-
-
-
-
-
-
-        {
-
-          !loading && result && (
-
-
-
-            <div
-              className="
-                grid
-                grid-cols-1
-                md:grid-cols-3
-                gap-5
-                mt-10
-              "
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-cyan-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Enter Bitcoin address (Legacy 1..., P2SH 3..., SegWit bc1q..., Taproot bc1p...)"
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950/90 border border-cyan-500/30 text-xs md:text-sm font-mono text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/25 disabled:opacity-50"
             >
-              
-
-
-
-              <div
-                className="
-                  bg-slate-900/50
-                  rounded-xl
-                  p-5
-                "
-              >
-
-
-                <p className="text-gray-400">
-
-                  Risk Score
-
-                </p>
-
-
-
-                <h2
-                  className="
-                    text-3xl
-                    font-bold
-                    text-yellow-400
-                  "
-                >
-
-
-                  {result.riskScore}/100
-
-
-                </h2>
-
-
-              </div>
-
-
-
-
-
-
-
-
-              <div
-                className="
-                  bg-slate-900/50
-                  rounded-xl
-                  p-5
-                "
-              >
-
-
-                <p className="text-gray-400">
-
-                  Transactions
-
-                </p>
-
-
-
-                <h2
-                  className="
-                    text-3xl
-                    font-bold
-                    text-white
-                  "
-                >
-
-
-                  {result.transactionCount}
-
-
-                </h2>
-
-
-              </div>
-
-
-
-
-
-
-
-
-              <div
-                className="
-                  bg-slate-900/50
-                  rounded-xl
-                  p-5
-                "
-              >
-
-
-                <p className="text-gray-400">
-
-                  Security
-
-                </p>
-
-
-
-                <h2
-                  className="
-                    text-3xl
-                    font-bold
-                    text-cyan-400
-                  "
-                >
-
-
-                  {result.security || "Normal"}
-
-
-                </h2>
-
-
-              </div>
-
-
-
-
-
-            </div>
-
-
-
-          )
-
-        }
-
-
-
-
-
-
-
-
-
-        {
-
-          !loading && result && (
-
-
-
-            <div
-              className="
-                mt-10
-                grid
-                grid-cols-1
-                md:grid-cols-2
-                gap-6
-              "
-            >
-
-
-
-
-              <div
-                className="
-                  bg-slate-900/40
-                  border
-                  border-cyan-500/20
-                  rounded-2xl
-                  p-8
-                "
-              >
-
-
-
-                <h3
-                  className="
-                    text-2xl
-                    font-bold
-                    text-cyan-400
-                    text-center
-                  "
-                >
-
-
-                  🎯 AI Risk Gauge
-
-
-                </h3>
-
-
-
-
-                <div className="flex justify-center mt-6">
-
-
-                  <RiskGauge
-                    score={result.riskScore}
-                  />
-
-
-                </div>
-
-
-
-              </div>
-
-
-
-
-
-
-
-
-              <TrustScoreCard
-                score={result.riskScore}
-              />
-
-
-
-
-
-
-
-            </div>
-
-
-
-          )
-
-
-        }
-
-
-
-
-
-
-
-
-
-        {
-
-          !loading && result && (
-
-
-
-            <div
-              className="
-                mt-8
-                bg-slate-900/50
-                border
-                border-cyan-500/20
-                rounded-xl
-                p-6
-              "
-            >
-
-
-
-              <h3
-                className="
-                  text-xl
-                  font-bold
-                  text-cyan-400
-                "
-              >
-
-
-                🤖 AI Risk Analysis
-
-
-              </h3>
-
-
-
-
-
-
-              <h4
-                className="
-                  text-white
-                  font-bold
-                  mt-6
-                "
-              >
-
-
-                Detected Factors
-
-
-              </h4>
-
-
-
-
-
-
-              {
-
-                result.riskFactors?.length > 0 ?
-
-
-                (
-
-                  <div className="mt-3 space-y-2">
-
-
-                    {
-
-                      result.riskFactors.map((factor,index)=>(
-
-
-                        <div
-                          key={index}
-                          className="
-                            bg-white/5
-                            rounded-lg
-                            p-3
-                            text-gray-300
-                          "
-                        >
-
-
-                          ⚠️ {factor}
-
-
-                        </div>
-
-
-                      ))
-
-
-                    }
-
-
-                  </div>
-
-
-                )
-
-
-                :
-
-
-                (
-
-                  <p className="text-gray-400 mt-3">
-
-
-                    No suspicious activity detected.
-
-
-                  </p>
-
-
-                )
-
-
-              }
-
-
-
-
-
-
-
-
-              <div
-                className="
-                  mt-6
-                  bg-cyan-500/10
-                  rounded-xl
-                  p-4
-                "
-              >
-
-
-                <h4
-                  className="
-                    text-cyan-400
-                    font-bold
-                  "
-                >
-
-
-                  AI Report
-
-
-                </h4>
-
-
-
-
-                <p className="text-gray-300 mt-2">
-
-
-                  {result.aiReport}
-
-
-                </p>
-
-
-
-              </div>
-
-
-
-
-
-
-            </div>
-
-
-
-          )
-
-
-        }
-
-
-
-
-
-
-
-
-
-        {
-
-          !loading && result && (
-
-
-
-            <div
-              className="
-                mt-8
-                flex
-                justify-center
-              "
-            >
-
-
-
-              <button
-
-                onClick={downloadPDF}
-
-                className="
-                  px-8
-                  py-4
-                  rounded-xl
-                  bg-green-500
-                  hover:bg-green-400
-                  text-white
-                  font-bold
-                "
-
-              >
-
-
-                📄 Download PDF Report
-
-
-              </button>
-
-
-
-
-            </div>
-
-
-
-          )
-
-
-        }
-
-
-
-
-
-
-
-
-
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  Analyzing Blockchain...
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4" /> Scan Target
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
+        {error && (
+          <div className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
       </div>
 
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="cyber-card rounded-2xl p-12 text-center border border-cyan-500/25 space-y-4 animate-pulse">
+          <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mx-auto text-cyan-400">
+            <Shield className="w-7 h-7 animate-spin text-cyan-400" />
+          </div>
+          <h3 className="text-lg font-bold font-heading text-white">Running 5-Axis Heuristic Risk Engine</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Querying Bitcoin UTXO states, calculating velocity & pass-through ratios, clustering common-inputs, and evaluating entity sanctions...
+          </p>
+        </div>
+      )}
 
+      {/* Main Analysis Result */}
+      {!loading && walletResult && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Target Identity & Action Header Bar */}
+          <div className="cyber-card rounded-2xl p-5 border border-cyan-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 uppercase">
+                  Bitcoin Mainnet
+                </span>
+                {walletResult.entityTag && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                    <span>{walletResult.entityTag.icon}</span>
+                    <span>{walletResult.entityTag.name}</span>
+                  </span>
+                )}
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${theme.badge}`}>
+                  {theme.icon} {walletResult.riskLevel} Risk ({walletResult.riskScore}/100)
+                </span>
+              </div>
 
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm md:text-base font-bold font-mono text-white break-all">
+                  {walletResult.address}
+                </h2>
+                <button
+                  onClick={handleCopyAddress}
+                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition flex-shrink-0"
+                  title="Copy Address"
+                >
+                  {copiedAddr ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </button>
+                <a
+                  href={`https://mempool.space/address/${walletResult.address}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition flex-shrink-0"
+                  title="View on Mempool.space"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
 
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleAddToWatchlist}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold transition flex items-center gap-1.5"
+              >
+                {watchlistSuccess ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" /> Pinned!
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-3.5 h-3.5 text-cyan-400" /> Watchlist
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setIsExportOpen(true)}
+                className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-cyan-500/10"
+              >
+                <Share2 className="w-3.5 h-3.5" /> Export & Share Report
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-950/80 border border-white/10 overflow-x-auto">
+            {[
+              { id: "overview", label: "Overview & Risk", icon: Shield },
+              { id: "graph", label: "Fund Flow Graph", icon: GitBranch, badge: "Interactive" },
+              { id: "security", label: "Security Report", icon: FileText, badge: `${walletResult.ruleTriggers?.length || 0} Rules` },
+              { id: "transactions", label: "Ledger History", icon: Layers, badge: walletResult.transactionCount },
+              { id: "clustering", label: "Entity & Clusters", icon: Users },
+              { id: "trend", label: "Risk Trajectory", icon: TrendingUp },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap ${
+                    isActive
+                      ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold shadow-lg shadow-cyan-500/20"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                  {tab.badge && (
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
+                        isActive
+                          ? "bg-slate-950/30 text-slate-950 font-bold"
+                          : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
+                      }`}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* TAB 1: OVERVIEW & RISK */}
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              {/* Top Key Metrics Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="cyber-card rounded-2xl p-4 border border-cyan-500/20 space-y-1">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Current Balance</span>
+                  <div className="text-lg md:text-xl font-bold font-mono text-white">{formatBtc(walletResult.balance)}</div>
+                  <div className="text-xs text-slate-500 font-mono">{formatUsd(walletResult.balanceUSD)}</div>
+                </div>
+
+                <div className="cyber-card rounded-2xl p-4 border border-cyan-500/20 space-y-1">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Total Received</span>
+                  <div className="text-lg md:text-xl font-bold font-mono text-emerald-400">+{formatBtc(walletResult.totalReceived)}</div>
+                  <div className="text-xs text-slate-500 font-mono">Inbound Volume</div>
+                </div>
+
+                <div className="cyber-card rounded-2xl p-4 border border-cyan-500/20 space-y-1">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Total Sent</span>
+                  <div className="text-lg md:text-xl font-bold font-mono text-rose-400">-{formatBtc(walletResult.totalSent)}</div>
+                  <div className="text-xs text-slate-500 font-mono">Outbound Volume</div>
+                </div>
+
+                <div className="cyber-card rounded-2xl p-4 border border-cyan-500/20 space-y-1">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Confirmed Transfers</span>
+                  <div className="text-lg md:text-xl font-bold font-mono text-cyan-400">{walletResult.transactionCount?.toLocaleString() || 0}</div>
+                  <div className="text-xs text-slate-500 font-mono">{walletResult.unconfirmedTxCount || 0} In Mempool</div>
+                </div>
+              </div>
+
+              {/* Gauge + Radar Chart Side-by-Side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Risk Gauge Card */}
+                <div className="cyber-card rounded-2xl p-6 border border-cyan-500/20 flex flex-col items-center justify-between">
+                  <div className="w-full flex items-center justify-between pb-3 border-b border-white/10">
+                    <h3 className="text-base font-bold font-heading text-white flex items-center gap-2">
+                      <span className="text-cyan-400">🛡️</span> Deterministic Risk Score
+                    </h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono border ${theme.badge}`}>
+                      {walletResult.riskLevel}
+                    </span>
+                  </div>
+
+                  <RiskGauge score={walletResult.riskScore} level={walletResult.riskLevel} size={230} />
+
+                  <p className="text-xs text-center text-slate-400 px-4">
+                    Score generated from 5-axis deterministic heuristics without black-box ML models.
+                  </p>
+                </div>
+
+                {/* 5-Axis Radar Chart Card */}
+                <div className="cyber-card rounded-2xl p-6 border border-cyan-500/20 flex flex-col justify-between">
+                  <div className="w-full flex items-center justify-between pb-3 border-b border-white/10">
+                    <h3 className="text-base font-bold font-heading text-white flex items-center gap-2">
+                      <span className="text-cyan-400">📊</span> 5-Axis Risk Vector Breakdown
+                    </h3>
+                    <span className="text-xs font-mono text-slate-400">Normalized Exposure</span>
+                  </div>
+
+                  <RiskRadarChart breakdown={breakdown} riskScore={walletResult.riskScore} />
+
+                  <div className="grid grid-cols-5 gap-1 text-[10px] font-mono text-center text-slate-400 pt-2 border-t border-white/5">
+                    <div>TX: {breakdown.transactionRisk || 0}/25</div>
+                    <div>Bal: {breakdown.balanceRisk || 0}/20</div>
+                    <div>Pat: {breakdown.patternRisk || 0}/25</div>
+                    <div>Act: {breakdown.activityRisk || 0}/15</div>
+                    <div>Ent: {breakdown.entityRisk || 0}/35</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5D Score Breakdown Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {[
+                  { title: "Transaction Velocity", pts: breakdown.transactionRisk || 0, max: 25, color: "text-cyan-400", desc: "Volume, frequency & churn" },
+                  { title: "Balance Exposure", pts: breakdown.balanceRisk || 0, max: 20, color: "text-amber-400", desc: "Whale holdings & drain ratio" },
+                  { title: "Transit Pattern", pts: breakdown.patternRisk || 0, max: 25, color: "text-purple-400", desc: "Pass-through 1:1 ratio" },
+                  { title: "Activity & Age", pts: breakdown.activityRisk || 0, max: 15, color: "text-blue-400", desc: "Burst activation & consistency" },
+                  { title: "Entity & Sanctions", pts: breakdown.entityRisk || 0, max: 35, color: "text-rose-400", desc: "Mixer, threat & OFAC flags" },
+                ].map((item, idx) => (
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-300 font-semibold">{item.title}</span>
+                      <span className={`font-mono font-bold ${item.color}`}>{item.pts}/{item.max}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-500 rounded-full"
+                        style={{ width: `${Math.min(100, (item.pts / item.max) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: FUND FLOW GRAPH */}
+          {activeTab === "graph" && (
+            <TransactionGraph
+              graphData={walletResult.graphData}
+              targetAddress={walletResult.address}
+              onSelectAddress={(addr) => handleScan(addr)}
+            />
+          )}
+
+          {/* TAB 3: SECURITY REPORT */}
+          {activeTab === "security" && (
+            <SecurityReportCard
+              riskScore={walletResult.riskScore}
+              riskLevel={walletResult.riskLevel}
+              ruleTriggers={walletResult.ruleTriggers}
+              securityAssessment={walletResult.securityAssessment || walletResult.aiReport}
+              methodology={walletResult.methodology}
+            />
+          )}
+
+          {/* TAB 4: TRANSACTION LEDGER */}
+          {activeTab === "transactions" && (
+            <TransactionTable
+              initialTransactions={walletResult.transactions || []}
+              address={walletResult.address}
+              btcPriceUSD={walletResult.btcPriceUSD}
+              hasMore={walletResult.hasMoreTxs}
+              lastSeenTxId={walletResult.lastSeenTxId}
+            />
+          )}
+
+          {/* TAB 5: ENTITY & CLUSTERING */}
+          {activeTab === "clustering" && (
+            <div className="cyber-card rounded-2xl p-6 border border-cyan-500/20 space-y-6">
+              <div className="flex items-center gap-3 pb-4 border-b border-white/10">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xl">
+                  👥
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-heading text-white">Common-Input Clustering Intelligence</h3>
+                  <p className="text-xs text-slate-400">
+                    Heuristic analysis identifying sibling addresses co-signed in multi-input Bitcoin transactions.
+                  </p>
+                </div>
+              </div>
+
+              {/* Clustering Summary Box */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
+                  <span className="text-slate-400">Estimated Entity Size</span>
+                  <div className="text-xl font-bold text-cyan-400">
+                    {walletResult.clustering?.clusterSize || 1} Addresses
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
+                  <span className="text-slate-400">Heuristic Confidence</span>
+                  <div className="text-xl font-bold text-white">
+                    {walletResult.clustering?.confidence || "Moderate"}
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
+                  <span className="text-slate-400">Entity Tag Association</span>
+                  <div className="text-xl font-bold text-purple-300">
+                    {walletResult.entityTag?.name || "Unclassified / Private"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Clustered Addresses List */}
+              {walletResult.clustering?.associatedAddresses?.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+                    Co-Signed Sibling Addresses ({walletResult.clustering.associatedAddresses.length})
+                  </h4>
+                  <div className="space-y-1.5 font-mono text-xs">
+                    {walletResult.clustering.associatedAddresses.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-center justify-between"
+                      >
+                        <span className="text-slate-300">{item.address}</span>
+                        {item.entityTag && (
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                            {item.entityTag.name}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleScan(item.address)}
+                          className="px-2 py-0.5 rounded bg-slate-800 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 text-[10px] font-bold transition"
+                        >
+                          Scan Cluster Target
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 font-mono">
+                  No multi-input co-signing patterns detected in recent transactions for this UTXO address.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* TAB 6: HISTORICAL RISK TREND */}
+          {activeTab === "trend" && (
+            <HistoricalRiskTrend
+              address={walletResult.address}
+              currentRiskScore={walletResult.riskScore}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Export Report Modal */}
+      <ExportReportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        walletData={walletResult || {}}
+        riskData={walletResult || {}}
+        scanId={walletResult?.scanId}
+      />
     </div>
-
-
-
-
-
   );
-
-
-}
-  
-
+};
 
 export default WalletAnalyzer;

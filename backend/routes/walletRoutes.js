@@ -1,26 +1,47 @@
 const express = require("express");
-
 const router = express.Router();
 
 const {
     fetchWallet,
+    batchScan,
+    getTransactions,
+    getWalletGraph,
+    getRiskTrend,
+    getPublicReport,
     getHistory,
-    getDashboardStats
+    getDashboardStats,
+    getWatchlist,
+    addToWatchlist,
+    removeFromWatchlist,
+    rescanWatchlist,
 } = require("../controllers/walletController");
 
-const authMiddleware = require("../middleware/authMiddleware");
+const { authMiddleware, optionalAuth } = require("../middleware/authMiddleware");
+const { validateAddressParam, validateBatchAddresses } = require("../middleware/validators");
+const { scanLimiter } = require("../middleware/rateLimiter");
 
+// Dashboard & History
+router.get("/dashboard/stats", optionalAuth, getDashboardStats);
+router.get("/history/all", optionalAuth, getHistory);
 
-// Dashboard Stats
-router.get("/dashboard/stats", authMiddleware, getDashboardStats);
+// Watchlist Management
+router.get("/watchlist", optionalAuth, getWatchlist);
+router.post("/watchlist", optionalAuth, addToWatchlist);
+router.post("/watchlist/rescan", optionalAuth, rescanWatchlist);
+router.delete("/watchlist/:address", optionalAuth, removeFromWatchlist);
 
+// Multi-Address Batch Scanning
+router.post("/batch-scan", optionalAuth, scanLimiter, validateBatchAddresses, batchScan);
 
-// Wallet History
-router.get("/history/all", authMiddleware, getHistory);
+// Public Read-Only Shareable Report Lookup
+router.get("/report/:id", getPublicReport);
 
+// Address Deep-Dive Sub-resources
+router.get("/:address/transactions", validateAddressParam, getTransactions);
+router.get("/:address/graph", validateAddressParam, getWalletGraph);
+router.get("/:address/trend", validateAddressParam, getRiskTrend);
 
-// Analyze Wallet
-router.get("/:address", authMiddleware, fetchWallet);
-
+// Main Single Wallet Scan Endpoint
+router.get("/:address", optionalAuth, scanLimiter, validateAddressParam, fetchWallet);
 
 module.exports = router;
