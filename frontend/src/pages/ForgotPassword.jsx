@@ -33,7 +33,7 @@ const ForgotPassword = () => {
       const res = await api.post("/auth/forgot-password", { email });
       if (res.data?.success) {
         setSuccessMsg(
-          "If that email address is registered, password reset instructions have been generated. Please check your simulated development terminal for the secure reset link."
+          res.data.message || "If that email address is registered, password reset instructions have been sent to your inbox. Please check your email, including spam or junk folders."
         );
       }
     } catch (err) {

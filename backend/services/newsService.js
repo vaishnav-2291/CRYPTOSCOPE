@@ -290,10 +290,14 @@ class NewsService {
 
     startBackgroundPoller() {
         if (this.pollInterval) clearInterval(this.pollInterval);
-        // Initial sync on startup
-        setTimeout(() => this.syncNews(), 2000);
-        // Periodic sync every 2.5 minutes
-        this.pollInterval = setInterval(() => this.syncNews(), 150000);
+        // Initial sync on startup (fail-safe)
+        setTimeout(() => {
+            this.syncNews().catch((err) => console.warn("[NewsService] Startup news sync notice:", err.message));
+        }, 2000);
+        // Periodic sync every 2.5 minutes (fail-safe)
+        this.pollInterval = setInterval(() => {
+            this.syncNews().catch((err) => console.warn("[NewsService] Periodic news sync notice:", err.message));
+        }, 150000);
     }
 }
 
