@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSecurityAlerts, simulateSecurityAlert, subscribeToRealtimeStream } from "../services/api";
+import { getSecurityAlerts, subscribeToRealtimeStream } from "../services/api";
 import { formatBtc, formatUsd, truncateAddress } from "../utils/constants";
 import {
   ShieldAlert,
@@ -18,7 +18,6 @@ import {
   Layers,
   Search,
   Sliders,
-  Sparkles,
   RefreshCw,
 } from "lucide-react";
 
@@ -27,7 +26,6 @@ const SOCDashboard = () => {
   const [incidents, setIncidents] = useState([]);
   const [filterSeverity, setFilterSeverity] = useState("ALL");
   const [selectedIncident, setSelectedIncident] = useState(null);
-  const [isSimulating, setIsSimulating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [realtimeActive, setRealtimeActive] = useState(false);
 
@@ -61,20 +59,6 @@ const SOCDashboard = () => {
       unsubscribe();
     };
   }, []);
-
-  const handleSimulateAlert = async () => {
-    try {
-      setIsSimulating(true);
-      const res = await simulateSecurityAlert();
-      if (res?.alert) {
-        setIncidents((prev) => [res.alert, ...prev.filter((i) => i.incidentId !== res.alert.incidentId)]);
-      }
-    } catch (err) {
-      alert("Failed to simulate alert: " + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSimulating(false);
-    }
-  };
 
   const filteredIncidents = incidents.filter((inc) => {
     if (filterSeverity === "ALL") return true;
@@ -122,19 +106,11 @@ const SOCDashboard = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={fetchAlerts}
-              className="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition"
+              className="px-4 py-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition flex items-center gap-2 text-xs font-mono cursor-pointer"
               title="Refresh Incidents"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            </button>
-
-            <button
-              onClick={handleSimulateAlert}
-              disabled={isSimulating}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-600 hover:from-rose-400 hover:to-amber-500 text-white font-extrabold text-xs flex items-center gap-2 transition shadow-lg shadow-rose-500/25 disabled:opacity-50"
-            >
-              <Zap className="w-4 h-4" />
-              <span>{isSimulating ? "Injecting Packet..." : "Simulate Live Incident Alert"}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -231,8 +207,12 @@ const SOCDashboard = () => {
         </div>
 
         {filteredIncidents.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 font-mono text-xs">
-            No incidents found matching current filter. Click "Simulate Live Incident Alert" to inject an intrusion.
+          <div className="py-12 text-center text-slate-400 font-mono text-xs space-y-2">
+            <ShieldAlert className="w-8 h-8 mx-auto text-slate-600 mb-2" />
+            <div className="text-white font-bold text-sm">No security incidents detected</div>
+            <p className="text-slate-500 text-[11px] max-w-md mx-auto">
+              Real-time intrusion alerts are automatically generated and persisted whenever high-risk, mixer, or OFAC-sanctioned wallets are identified during scans.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">

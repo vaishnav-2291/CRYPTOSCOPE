@@ -204,6 +204,10 @@ export const subscribeToRealtimeStream = (onMessage) => {
     onMessage({ type: "activity_logged", data: JSON.parse(e.data) });
   });
 
+  eventSource.addEventListener("password_changed", (e) => {
+    onMessage({ type: "password_changed", data: JSON.parse(e.data) });
+  });
+
   eventSource.onerror = (err) => {
     onMessage({ type: "error", error: err });
   };

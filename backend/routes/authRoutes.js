@@ -9,6 +9,8 @@ const {
     forgotPassword,
     resetPassword,
     updateProfile,
+    googleAuthRedirect,
+    googleAuthCallback,
 } = require("../controllers/authController");
 
 const { authMiddleware } = require("../middleware/authMiddleware");
@@ -19,6 +21,10 @@ const { authLimiter } = require("../middleware/rateLimiter");
 router.post("/register", authLimiter, validateRegister, register);
 router.post("/login", authLimiter, login);
 router.post("/refresh", refreshToken);
+
+// Google OAuth 2.0 Endpoints
+router.get("/google", authLimiter, googleAuthRedirect);
+router.get("/google/callback", googleAuthCallback);
 
 // Profile & Account Management
 router.get("/me", authMiddleware, getCurrentUser);

@@ -10,7 +10,6 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -19,7 +18,7 @@ const Register = () => {
     try {
       setLoading(true);
       setError(null);
-      await register(name, email, password, role);
+      await register(name, email, password);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Registration failed.");
@@ -94,34 +93,6 @@ const Register = () => {
                   className="w-full pl-10 pr-3.5 py-3 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
                   required
                 />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-slate-300 font-medium">Account Role</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRole("user")}
-                  className={`py-2 rounded-xl font-mono text-xs border transition ${
-                    role === "user"
-                      ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-bold"
-                      : "bg-slate-900 text-slate-400 border-white/5"
-                  }`}
-                >
-                  Analyst (User)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("admin")}
-                  className={`py-2 rounded-xl font-mono text-xs border transition ${
-                    role === "admin"
-                      ? "bg-purple-500/20 text-purple-300 border-purple-500/50 font-bold"
-                      : "bg-slate-900 text-slate-400 border-white/5"
-                  }`}
-                >
-                  Administrator
-                </button>
               </div>
             </div>
 

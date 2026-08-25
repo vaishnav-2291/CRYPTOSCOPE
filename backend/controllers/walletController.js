@@ -11,27 +11,21 @@ const { logActivity } = require("../services/activityService");
 const mongoose = require("mongoose");
 const axios = require("axios");
 
+const marketService = require("../services/marketService");
+
 function isDbConnected() {
     return mongoose.connection && mongoose.connection.readyState === 1;
 }
 
 /**
- * Helper to fetch live BTC price for USD conversions (cached for 60s)
+ * Helper to fetch live BTC price for USD conversions from genuine market providers
  */
 async function getLiveBtcPriceUSD() {
-    const cached = cacheService.get("live_btc_price_usd");
-    if (cached) return cached;
-
     try {
-        const res = await axios.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", {
-            timeout: 2000,
-        });
-        const price = res.data?.bitcoin?.usd || 96420;
-        cacheService.set("live_btc_price_usd", price, 60);
-        return price;
+        const rates = await marketService.getMarketRates();
+        return rates?.data?.bitcoin?.usd || 0;
     } catch {
-        cacheService.set("live_btc_price_usd", 96420, 60);
-        return 96420;
+        return 0;
     }
 }
 
@@ -436,7 +430,7 @@ exports.getHistory = async (req, res) => {
     }
 
     try {
-        const query = req.user ? { user: req.user.id } : { isPublic: true };
+        const query = req.user ? { user: req.user.id } : { user: null };
         const history = await Wallet.find(query).sort({ createdAt: -1 }).limit(50);
 
         res.json({
@@ -461,16 +455,17 @@ exports.getDashboardStats = async (req, res) => {
     }
 
     try {
+        const userQuery = req.user && req.user.role !== "admin" ? { user: req.user.id } : {};
         const [totalScans, highRisk, mediumRisk, lowRisk, allScans] = await Promise.all([
-            Wallet.countDocuments(),
-            Wallet.countDocuments({ riskLevel: "High" }),
-            Wallet.countDocuments({ riskLevel: "Medium" }),
-            Wallet.countDocuments({ riskLevel: "Low" }),
-            Wallet.find({}).select("riskScore transactions").limit(100),
+            Wallet.countDocuments(userQuery),
+            Wallet.countDocuments({ ...userQuery, riskLevel: "High" }),
+            Wallet.countDocuments({ ...userQuery, riskLevel: "Medium" }),
+            Wallet.countDocuments({ ...userQuery, riskLevel: "Low" }),
+            Wallet.find(userQuery).select("riskScore transactions").limit(100),
         ]);
 
         const avgScore =
-            allScans.length > 0 ? Math.round(allScans.reduce((sum, w) => sum + (w.riskScore || 0), 0) / allScans.length) : 42;
+            allScans.length > 0 ? Math.round(allScans.reduce((sum, w) => sum + (w.riskScore || 0), 0) / allScans.length) : 0;
 
         const totalTransactions = allScans.reduce((sum, w) => sum + (w.transactions || 0), 0);
 
@@ -707,7 +702,7 @@ exports.getUserActivities = async (req, res) => {
     }
 
     try {
-        const query = req.user ? { userId: req.user.id } : {};
+        const query = req.user ? { userId: req.user.id } : { userId: null };
         const activities = await UserActivity.find(query).sort({ createdAt: -1 }).limit(50);
 
         res.json({
@@ -729,7 +724,11 @@ exports.getSecurityAlerts = async (req, res) => {
     }
 
     try {
-        const alerts = await SecurityAlert.find({}).sort({ createdAt: -1 }).limit(50);
+        let query = {};
+        if (req.user?.role !== "admin") {
+            query = req.user ? { userId: req.user.id } : { userId: null };
+        }
+        const alerts = await SecurityAlert.find(query).sort({ createdAt: -1 }).limit(50);
 
         res.json({
             success: true,

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { batchScanWallets } from "../services/api";
-import { SAMPLE_WALLETS, formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
-import { Layers, Play, Download, Sparkles, CheckCircle2, AlertCircle, Search, ExternalLink } from "lucide-react";
+import { formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
+import { Layers, Play, Download, CheckCircle2, AlertCircle, Search, ExternalLink } from "lucide-react";
 
 const BatchScanner = ({ onSelectAddress }) => {
   const [inputText, setInputText] = useState("");
@@ -19,11 +19,6 @@ const BatchScanner = ({ onSelectAddress }) => {
   };
 
   const currentAddresses = parseAddresses(inputText);
-
-  const handleFillSample = () => {
-    const samples = SAMPLE_WALLETS.slice(0, 5).map((w) => w.address).join("\n");
-    setInputText(samples);
-  };
 
   const handleExecuteBatchScan = async () => {
     const addrs = parseAddresses(inputText);
@@ -89,15 +84,6 @@ const BatchScanner = ({ onSelectAddress }) => {
             Perform parallel risk scoring across up to 20 Bitcoin addresses simultaneously with consolidated audit results.
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleFillSample}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-mono font-medium border border-cyan-500/30 transition flex items-center gap-1.5"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Sample 5-Wallet Batch
-          </button>
-        </div>
       </div>
 
       {/* Input Textarea Area */}
@@ -105,7 +91,7 @@ const BatchScanner = ({ onSelectAddress }) => {
         <div className="relative">
           <textarea
             rows={5}
-            placeholder="Paste Bitcoin addresses (one per line, comma, or space separated)...&#10;1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa&#10;34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo"
+            placeholder="Paste Bitcoin addresses (one per line, comma, or space separated)..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             className="w-full p-4 rounded-xl bg-slate-950/80 border border-cyan-500/30 text-xs font-mono text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 leading-relaxed"

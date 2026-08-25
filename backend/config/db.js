@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
 
-// Force standard DNS resolution if needed for Atlas SRV
 try {
     dns.setServers(["8.8.8.8", "8.8.4.4"]);
 } catch {
@@ -9,6 +8,7 @@ try {
 }
 
 let isConnecting = false;
+
 
 /**
  * Connect to MongoDB with robust error handling and connection lifecycle hooks

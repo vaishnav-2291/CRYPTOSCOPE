@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { scanWallet } from "../services/api";
-import { SAMPLE_WALLETS, formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
+import { formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
 import { Radar } from "react-chartjs-2";
-import { GitCompare, Plus, Trash2, Search, Sparkles, AlertCircle } from "lucide-react";
+import { GitCompare, Plus, Trash2, Search, AlertCircle } from "lucide-react";
 
 const WALLET_COLORS = [
   { border: "#00F2FE", bg: "rgba(0, 242, 254, 0.2)" },
@@ -12,10 +12,7 @@ const WALLET_COLORS = [
 ];
 
 const WalletCompareMatrix = () => {
-  const [addresses, setAddresses] = useState([
-    "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-    "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
-  ]);
+  const [addresses, setAddresses] = useState([]);
   const [newAddr, setNewAddr] = useState("");
   const [loading, setLoading] = useState(false);
   const [walletsData, setWalletsData] = useState([]);
@@ -39,14 +36,6 @@ const WalletCompareMatrix = () => {
   const handleRemove = (idx) => {
     setAddresses(addresses.filter((_, i) => i !== idx));
     setWalletsData(walletsData.filter((_, i) => i !== idx));
-  };
-
-  const handleQuickPreset = () => {
-    setAddresses([
-      "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", // Satoshi Genesis (Low Risk)
-      "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo", // Binance Cold (Med/Low)
-      "12t9YDPgwJNPPJa8NVwKEC3gahP4yghN6e", // WannaCry Ransomware (High Risk)
-    ]);
   };
 
   const handleRunComparison = async () => {
@@ -142,13 +131,6 @@ const WalletCompareMatrix = () => {
             Compare 2 to 4 Bitcoin wallets side-by-side with overlaid 5-axis radar charts and comparative risk matrices.
           </p>
         </div>
-
-        <button
-          onClick={handleQuickPreset}
-          className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-mono font-medium border border-cyan-500/30 transition flex items-center gap-1.5"
-        >
-          <Sparkles className="w-3.5 h-3.5" /> 3-Tier Sample Preset
-        </button>
       </div>
 
       {/* Target Address Selector Chips */}

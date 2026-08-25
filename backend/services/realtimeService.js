@@ -156,6 +156,20 @@ class RealtimeService {
         );
     }
 
+    emitPasswordChanged(userId) {
+        const targetUserId = userId?.toString() || null;
+        this.broadcast(
+            "password_changed",
+            {
+                userId: targetUserId,
+                action: "PASSWORD_CHANGED",
+                message: "Your password was recently changed. Existing sessions have been terminated. Please log in again.",
+                timestamp: new Date().toISOString(),
+            },
+            targetUserId
+        );
+    }
+
     /**
      * Heartbeat keep-alive every 15 seconds
      */

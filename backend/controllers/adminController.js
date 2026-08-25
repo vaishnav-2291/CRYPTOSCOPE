@@ -35,7 +35,7 @@ exports.getAdminStats = async (req, res) => {
         const avgScore =
             allWallets.length > 0
                 ? Math.round(allWallets.reduce((s, w) => s + (w.riskScore || 0), 0) / allWallets.length)
-                : 42;
+                : 0;
 
         const entities = getAllEntities();
         const cacheDiagnostics = cacheService.getStats();

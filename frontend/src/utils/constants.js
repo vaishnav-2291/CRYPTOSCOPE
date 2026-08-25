@@ -1,51 +1,6 @@
 /**
- * CryptoScope AI — Global UI Constants & Sample Intel Directory
+ * CryptoScope AI — Global UI Constants & Formatting Utilities
  */
-
-export const SAMPLE_WALLETS = [
-  {
-    name: "Satoshi Genesis (Historic)",
-    address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-    category: "Genesis / Historic",
-    expectedRisk: "Low",
-    badgeColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
-  },
-  {
-    name: "Binance Cold Storage",
-    address: "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
-    category: "Exchange Vault",
-    expectedRisk: "Low-Medium",
-    badgeColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
-  },
-  {
-    name: "Wasabi CoinJoin Mixer",
-    address: "bc1qa5wkgaew2dkv56kfvj49j0av5nmar2m78mtgggh3txac90gaxuvsgg0wqj",
-    category: "Privacy / Mixer",
-    expectedRisk: "High",
-    badgeColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
-  },
-  {
-    name: "WannaCry Ransomware Treasury",
-    address: "12t9YDPgwJNPPJa8NVwKEC3gahP4yghN6e",
-    category: "Ransomware / Sanctions",
-    expectedRisk: "High (Critical)",
-    badgeColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
-  },
-  {
-    name: "Mt. Gox Hack Stolen Assets",
-    address: "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF",
-    category: "Exploit Stolen Funds",
-    expectedRisk: "High (Critical)",
-    badgeColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
-  },
-  {
-    name: "Kraken Hot Wallet Cluster",
-    address: "38U5G48Rj9VbF9t8cE1256yq75fJd5rT1g",
-    category: "Exchange Liquidity",
-    expectedRisk: "Medium",
-    badgeColor: "text-amber-400 bg-amber-500/10 border-amber-500/30",
-  },
-];
 
 export const formatBtc = (val) => {
   if (val === null || val === undefined) return "0.00000000 BTC";

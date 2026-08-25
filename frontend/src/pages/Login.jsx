@@ -1,16 +1,42 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Shield, Lock, Mail, ArrowRight, Sparkles, AlertCircle } from "lucide-react";
+import { Shield, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, loginWithTokens } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Handle OAuth callback redirection params (?oauth_success=true or ?error=...)
+  useEffect(() => {
+    const isOAuthSuccess = searchParams.get("oauth_success") === "true";
+    const token = searchParams.get("token");
+    const refreshToken = searchParams.get("refreshToken");
+    const oauthError = searchParams.get("error");
+
+    if (oauthError) {
+      setError(decodeURIComponent(oauthError));
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (isOAuthSuccess && token) {
+      setLoading(true);
+      setError(null);
+      loginWithTokens(token, refreshToken)
+        .then(() => {
+          window.history.replaceState({}, document.title, "/dashboard");
+          navigate("/dashboard");
+        })
+        .catch((err) => {
+          setError(err.message || "Failed to initialize Google authentication session.");
+          setLoading(false);
+        });
+    }
+  }, [searchParams, loginWithTokens, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,13 +52,16 @@ const Login = () => {
     }
   };
 
-  const handleDemoFill = (role = "analyst") => {
-    if (role === "admin") {
-      setEmail("admin@cryptoscope.ai");
-      setPassword("Admin@2026");
-    } else {
-      setEmail("analyst@cryptoscope.ai");
-      setPassword("Analyst@2026");
+  const handleGoogleSignIn = () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const origin = window.location.origin;
+      // Redirect browser directly to Google OAuth initialization endpoint
+      window.location.href = `/api/auth/google?origin=${encodeURIComponent(origin)}`;
+    } catch (err) {
+      setError("Failed to initiate Google sign-in.");
+      setLoading(false);
     }
   };
 
@@ -58,6 +87,42 @@ const Login = () => {
               <span>{error}</span>
             </div>
           )}
+
+          {/* Genuine Google OAuth Button */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/15 hover:border-cyan-500/50 text-white font-medium text-xs md:text-sm flex items-center justify-center gap-3 transition shadow-md shadow-black/40 hover:shadow-cyan-500/10 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+          >
+            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.26 21.36 7.36 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.98 0 12s.46 3.84 1.26 5.42l4.02-3.15z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+              />
+            </svg>
+            <span className="group-hover:text-cyan-300 transition-colors">Continue with Google</span>
+          </button>
+
+          {/* Divider */}
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-white/10 w-full"></div>
+            <span className="bg-[#080C14] px-3 text-[10px] uppercase font-mono text-slate-500 tracking-wider absolute">
+              or continue with email
+            </span>
+          </div>
 
           <form onSubmit={handleLogin} className="space-y-4 text-xs">
             <div className="space-y-1.5">
@@ -98,35 +163,12 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/25 disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/25 disabled:opacity-50 cursor-pointer"
             >
               {loading ? "Authenticating..." : "Sign In to Terminal"}
               {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
-
-          {/* Demo Fill Helper Buttons */}
-          <div className="pt-3 border-t border-white/10 space-y-2">
-            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider text-center">
-              Quick Demo Fill
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-              <button
-                type="button"
-                onClick={() => handleDemoFill("analyst")}
-                className="py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/10 text-cyan-300 transition flex items-center justify-center gap-1"
-              >
-                <Sparkles className="w-3 h-3" /> Analyst Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoFill("admin")}
-                className="py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/10 text-purple-300 transition flex items-center justify-center gap-1"
-              >
-                <Sparkles className="w-3 h-3" /> Admin Demo
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Footer Link */}

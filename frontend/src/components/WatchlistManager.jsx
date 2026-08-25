@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getWatchlist, addToWatchlist, removeFromWatchlist, rescanWatchlist } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { SAMPLE_WALLETS, truncateAddress, getRiskTheme } from "../utils/constants";
+import { truncateAddress, getRiskTheme } from "../utils/constants";
 import {
   Eye,
   Plus,

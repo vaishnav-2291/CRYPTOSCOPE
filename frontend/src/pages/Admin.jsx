@@ -70,20 +70,20 @@ const Admin = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
         <div className="cyber-card rounded-xl p-4 border border-cyan-500/20 space-y-1">
           <span className="text-slate-400">Total Registered Users</span>
-          <div className="text-2xl font-bold text-white">{stats?.totalUsers || 1}</div>
+          <div className="text-2xl font-bold text-white">{stats?.totalUsers ?? 0}</div>
           <span className="text-[10px] text-cyan-400">Database Accounts</span>
         </div>
 
         <div className="cyber-card rounded-xl p-4 border border-cyan-500/20 space-y-1">
           <span className="text-slate-400">Total Scans Executed</span>
-          <div className="text-2xl font-bold text-white">{stats?.totalScans || 0}</div>
+          <div className="text-2xl font-bold text-white">{stats?.totalScans ?? 0}</div>
           <span className="text-[10px] text-slate-400">Across All Accounts</span>
         </div>
 
         <div className="cyber-card rounded-xl p-4 border border-cyan-500/20 space-y-1">
           <span className="text-slate-400">In-Memory Cache Hit Rate</span>
           <div className="text-2xl font-bold text-emerald-400">
-            {stats?.cacheDiagnostics?.hitRate || "94.2%"}
+            {stats?.cacheDiagnostics?.hitRate || "0.0%"}
           </div>
           <span className="text-[10px] text-slate-400">
             {stats?.cacheDiagnostics?.hits || 0} Hits / {stats?.cacheDiagnostics?.misses || 0} Misses

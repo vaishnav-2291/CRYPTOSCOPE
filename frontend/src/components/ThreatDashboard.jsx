@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getDashboardStats } from "../services/api";
-import { SAMPLE_WALLETS, truncateAddress, formatBtc, formatUsd } from "../utils/constants";
+import { truncateAddress, formatBtc, formatUsd } from "../utils/constants";
 import {
   ShieldAlert,
   Search,

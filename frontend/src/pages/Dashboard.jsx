@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getDashboardStats, getMarketPrices, getWatchlist } from "../services/api";
+import { getDashboardStats, getMarketPrices, getWatchlist, getScanHistory } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { formatBtc, formatUsd, truncateAddress, getRiskTheme, SAMPLE_WALLETS } from "../utils/constants";
+import { formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
 import {
   Shield,
   Layers,
@@ -15,7 +15,6 @@ import {
   Activity,
   CheckCircle2,
   Clock,
-  Sparkles,
   Radio,
   Cpu,
   Zap,
@@ -33,6 +32,7 @@ const Dashboard = () => {
   const [marketData, setMarketData] = useState(null);
   const [quickAddr, setQuickAddr] = useState("");
   const [watchlistCount, setWatchlistCount] = useState(0);
+  const [recentScans, setRecentScans] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +53,12 @@ const Dashboard = () => {
               if (wRes?.watchlist) setWatchlistCount(wRes.watchlist.length);
             })
             .catch(() => {});
+
+          getScanHistory()
+            .then((hRes) => {
+              if (hRes?.history) setRecentScans(hRes.history.slice(0, 6));
+            })
+            .catch(() => {});
         }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -70,15 +76,16 @@ const Dashboard = () => {
     navigate(`/scan?address=${encodeURIComponent(quickAddr.trim())}`);
   };
 
-  const highRisk = stats?.highRiskWallets || 3;
-  const medRisk = stats?.mediumRiskWallets || 4;
-  const lowRisk = stats?.lowRiskWallets || 7;
+  const highRisk = stats?.highRiskWallets ?? 0;
+  const medRisk = stats?.mediumRiskWallets ?? 0;
+  const lowRisk = stats?.lowRiskWallets ?? 0;
+  const totalScansCount = stats?.totalScans ?? 0;
 
   const donutData = {
     labels: ["Low Risk (0-39)", "Medium Risk (40-69)", "High Risk (70-100)"],
     datasets: [
       {
-        data: [lowRisk, medRisk, highRisk],
+        data: totalScansCount > 0 ? [lowRisk, medRisk, highRisk] : [0, 0, 0],
         backgroundColor: ["#10B981", "#F59E0B", "#EF4444"],
         borderColor: "#080C14",
         borderWidth: 3,
@@ -140,7 +147,7 @@ const Dashboard = () => {
               />
               <button
                 type="submit"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-xs transition shadow-lg shadow-cyan-500/25 flex items-center gap-1"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-xs transition shadow-lg shadow-cyan-500/25 flex items-center gap-1 cursor-pointer"
               >
                 <span>SCAN</span>
                 <Zap className="w-3 h-3 fill-current" />
@@ -163,7 +170,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="text-3xl md:text-4xl font-extrabold font-mono text-white my-2 tracking-tight">
-            {stats?.totalScans?.toLocaleString() || "14"}
+            {stats?.totalScans !== undefined ? stats.totalScans.toLocaleString() : (loading ? "..." : "0")}
           </div>
           <span className="text-[11px] text-cyan-400 font-mono flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" /> Platform Scans Tracked
@@ -184,7 +191,7 @@ const Dashboard = () => {
             {highRisk}
           </div>
           <span className="text-[11px] text-rose-300 font-mono flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" /> Mixer / Exploit Matches
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" /> Flagged Wallets (Risk ≥ 70)
           </span>
         </div>
 
@@ -217,7 +224,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="text-3xl md:text-4xl font-extrabold font-mono text-amber-400 my-2 tracking-tight">
-            {stats?.averageRiskScore || 42}/100
+            {stats?.averageRiskScore !== undefined ? `${stats.averageRiskScore}/100` : (loading ? "..." : "0/100")}
           </div>
           <span className="text-[11px] text-amber-300 font-mono flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> 5-Axis Baseline Mean
@@ -225,7 +232,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Live Market Sparklines & Risk Donut */}
+      {/* Live Market & Risk Donut */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Live Market Tickers */}
         <div className="lg:col-span-2 space-y-4">
@@ -237,18 +244,16 @@ const Dashboard = () => {
                 <TrendingUp className="w-5 h-5 text-cyan-400" /> Live Crypto Market Rates
               </h3>
               <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                CoinGecko Telemetry
+                Binance / CoinGecko Live Feed
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 font-mono">
               {["bitcoin", "ethereum", "solana"].map((coinKey) => {
                 const coin = marketData?.[coinKey];
-                const price = coin?.usd || (coinKey === "bitcoin" ? 96420 : coinKey === "ethereum" ? 2780 : 195);
-                const change =
-                  coin?.usd_24h_change ||
-                  (coinKey === "bitcoin" ? 2.85 : coinKey === "ethereum" ? -0.92 : 4.15);
-                const isPos = change >= 0;
+                const price = coin?.usd;
+                const change = coin?.usd_24h_change;
+                const isPos = change !== undefined ? change >= 0 : true;
 
                 return (
                   <div
@@ -256,20 +261,28 @@ const Dashboard = () => {
                     className="p-4 rounded-xl bg-slate-950/80 border border-white/5 space-y-2 hover:border-cyan-500/30 transition shadow-inner group/card"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase text-slate-200">{coinKey}</span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
-                          isPos
-                            ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
-                            : "text-rose-400 bg-rose-500/10 border border-rose-500/30"
-                        }`}
-                      >
-                        {isPos ? "+" : ""}
-                        {change.toFixed(2)}%
-                      </span>
+                      <span className="text-xs font-bold uppercase text-slate-200">{coin?.name || coinKey}</span>
+                      {change !== undefined ? (
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
+                            isPos
+                              ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
+                              : "text-rose-400 bg-rose-500/10 border border-rose-500/30"
+                          }`}
+                        >
+                          {isPos ? "+" : ""}
+                          {change.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500">Live</span>
+                      )}
                     </div>
-                    <div className="text-xl font-extrabold text-white">{formatUsd(price)}</div>
-                    <div className="text-[10px] text-slate-500">24h Vol: {formatUsd(coin?.usd_24h_vol || 34000000000)}</div>
+                    <div className="text-xl font-extrabold text-white">
+                      {price !== undefined ? formatUsd(price) : (loading ? "Loading..." : "Unavailable")}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {coin?.usd_24h_vol ? `24h Vol: ${formatUsd(coin.usd_24h_vol)}` : "Verified Feed"}
+                    </div>
                   </div>
                 );
               })}
@@ -285,7 +298,7 @@ const Dashboard = () => {
               <span className="hud-bracket-tl" />
               <div>
                 <div className="text-xs font-mono text-cyan-400 font-semibold">BATCH SCANNER</div>
-                <div className="text-sm font-bold text-white mt-0.5">Scan 20 Addresses</div>
+                <div className="text-sm font-bold text-white mt-0.5">Scan Multiple Addresses</div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition" />
             </Link>
@@ -309,7 +322,7 @@ const Dashboard = () => {
               <span className="hud-bracket-tl" />
               <div>
                 <div className="text-xs font-mono text-purple-400 font-semibold">WATCHLIST</div>
-                <div className="text-sm font-bold text-white mt-0.5">Delta Alerts</div>
+                <div className="text-sm font-bold text-white mt-0.5">Delta Risk Alerts</div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-purple-400 group-hover:translate-x-1 transition" />
             </Link>
@@ -325,8 +338,16 @@ const Dashboard = () => {
             <p className="text-xs text-slate-400">Platform Scan Breakdown</p>
           </div>
 
-          <div className="h-52 w-full my-4">
-            <Doughnut data={donutData} options={donutOptions} />
+          <div className="h-52 w-full my-4 flex items-center justify-center">
+            {totalScansCount > 0 ? (
+              <Doughnut data={donutData} options={donutOptions} />
+            ) : (
+              <div className="text-center text-slate-500 text-xs font-mono space-y-1">
+                <Shield className="w-8 h-8 mx-auto text-slate-600 mb-2" />
+                <p>No scans performed yet.</p>
+                <p className="text-[10px] text-slate-600">Scan a wallet to populate risk metrics.</p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-around text-xs font-mono text-center pt-3 border-t border-white/5">
@@ -346,7 +367,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Preset Target Wallets Quick Launcher */}
+      {/* Recent Scans / Authenticated Targets Section */}
       <div className="cyber-card rounded-2xl p-6 border border-cyan-500/20 space-y-4 relative">
         <span className="hud-bracket-tl" />
         <span className="hud-bracket-tr" />
@@ -356,35 +377,66 @@ const Dashboard = () => {
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div>
             <h3 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" /> Curated Demo Target Wallets
+              <Shield className="w-4 h-4 text-cyan-400" /> Recent Scanned Wallets
             </h3>
             <p className="text-xs text-slate-400">
-              One-click access to historic nodes, commercial exchanges, privacy mixers, and threat actors for instant testing.
+              Live records persisted to your authenticated MongoDB audit history.
             </p>
           </div>
+          {recentScans.length > 0 && (
+            <Link to="/history" className="text-xs text-cyan-400 hover:underline flex items-center gap-1 font-mono">
+              <span>View All History</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {SAMPLE_WALLETS.slice(0, 6).map((sample, idx) => (
+        {recentScans.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {recentScans.map((scan, idx) => {
+              const theme = getRiskTheme(scan.riskLevel);
+              return (
+                <button
+                  key={idx}
+                  onClick={() => navigate(`/scan?address=${encodeURIComponent(scan.address)}`)}
+                  className="p-4 rounded-xl bg-slate-950/70 hover:bg-slate-900/90 border border-white/5 hover:border-cyan-500/40 text-left transition flex flex-col justify-between gap-2.5 group shadow-sm cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition">
+                      {scan.entityTag?.name || "Scanned Target"}
+                    </span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded border font-mono font-bold ${theme.badge}`}>
+                      {scan.riskLevel} ({scan.riskScore}/100)
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-400 group-hover:text-slate-300 transition">
+                    {truncateAddress(scan.address, 8, 8)}
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1 border-t border-white/5">
+                    <span>{formatBtc(scan.balance)}</span>
+                    <span>{new Date(scan.createdAt || scan.scannedAt).toLocaleDateString()}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-8 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto text-cyan-400">
+              <Search className="w-6 h-6" />
+            </div>
+            <div className="text-sm font-bold text-white">No wallets scanned yet</div>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Enter any Bitcoin address in the search box above to run a deterministic 5-axis heuristic scan and save it to your history.
+            </p>
             <button
-              key={idx}
-              onClick={() => navigate(`/scan?address=${encodeURIComponent(sample.address)}`)}
-              className="p-4 rounded-xl bg-slate-950/70 hover:bg-slate-900/90 border border-white/5 hover:border-cyan-500/40 text-left transition flex flex-col justify-between gap-2.5 group shadow-sm"
+              onClick={() => navigate("/scan")}
+              className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition cursor-pointer"
             >
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition">
-                  {sample.name}
-                </span>
-                <span className={`text-[9px] px-2 py-0.5 rounded border font-mono font-bold ${sample.badgeColor}`}>
-                  {sample.expectedRisk}
-                </span>
-              </div>
-              <div className="text-[11px] font-mono text-slate-400 group-hover:text-slate-300 transition">
-                {truncateAddress(sample.address, 8, 8)}
-              </div>
+              Launch Wallet Analyzer
             </button>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

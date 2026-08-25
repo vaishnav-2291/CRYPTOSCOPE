@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import api from "../services/api";
+import api, { subscribeToRealtimeStream } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -14,6 +14,28 @@ export const AuthProvider = ({ children }) => {
   });
   const [token, setToken] = useState(() => localStorage.getItem("token") || null);
   const [loading, setLoading] = useState(true);
+
+  // Listen for real-time security events (e.g. password changed on another device)
+  useEffect(() => {
+    if (!token || !user) return;
+
+    const unsubscribe = subscribeToRealtimeStream((msg) => {
+      if (msg.type === "password_changed") {
+        const targetUserId = msg.data?.userId;
+        const currentUserId = user.id || user._id;
+        if (targetUserId && currentUserId && String(targetUserId) === String(currentUserId)) {
+          logout();
+          window.location.href = "/login?error=" + encodeURIComponent("Your password was recently changed. Please sign in again.");
+        }
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
+  }, [token, user]);
 
   // Initialize and verify authentication on boot
   useEffect(() => {
@@ -39,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
+
   const login = async (email, password) => {
     const res = await api.post("/auth/login", { email, password });
     if (res.data?.token) {
@@ -53,8 +76,8 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const register = async (name, email, password, role = "user") => {
-    const res = await api.post("/auth/register", { name, email, password, role });
+  const register = async (name, email, password) => {
+    const res = await api.post("/auth/register", { name, email, password });
     if (res.data?.token) {
       setToken(res.data.token);
       setUser(res.data.user);
@@ -65,6 +88,27 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(res.data.user));
     }
     return res.data;
+  };
+
+  const loginWithTokens = async (accessToken, refreshToken) => {
+    setToken(accessToken);
+    localStorage.setItem("token", accessToken);
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
+    try {
+      const res = await api.get("/auth/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.data?.success && res.data?.user) {
+        setUser(res.data.user);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        return res.data.user;
+      }
+    } catch (err) {
+      console.error("Failed to load user profile after OAuth:", err);
+    }
+    return null;
   };
 
   const logout = () => {
@@ -90,6 +134,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin: user?.role === "admin",
     loading,
     login,
+    loginWithTokens,
     register,
     logout,
     updateUserData,

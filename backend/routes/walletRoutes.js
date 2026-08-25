@@ -19,7 +19,7 @@ const {
     simulateSecurityAlert,
 } = require("../controllers/walletController");
 
-const { authMiddleware, optionalAuth } = require("../middleware/authMiddleware");
+const { authMiddleware, optionalAuth, requireAdmin } = require("../middleware/authMiddleware");
 const { validateAddressParam, validateBatchAddresses } = require("../middleware/validators");
 const { scanLimiter } = require("../middleware/rateLimiter");
 
@@ -28,9 +28,9 @@ router.get("/dashboard/stats", optionalAuth, getDashboardStats);
 router.get("/history/all", optionalAuth, getHistory);
 router.get("/activities", optionalAuth, getUserActivities);
 
-// Security Alerts / Incidents
+// Security Alerts / Incidents (Simulation restricted to admin/dev)
 router.get("/alerts", optionalAuth, getSecurityAlerts);
-router.post("/alerts/simulate", optionalAuth, simulateSecurityAlert);
+router.post("/alerts/simulate", authMiddleware, requireAdmin, simulateSecurityAlert);
 
 // Watchlist Management
 router.get("/watchlist", optionalAuth, getWatchlist);

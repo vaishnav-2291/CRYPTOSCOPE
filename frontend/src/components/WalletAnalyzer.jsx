@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { scanWallet, addToWatchlist } from "../services/api";
-import { SAMPLE_WALLETS, formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
+import { formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
 import RiskGauge from "./RiskGauge";
 import RiskRadarChart from "./RiskRadarChart";
 import TransactionGraph from "./TransactionGraph";
@@ -23,7 +23,6 @@ import {
   AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
-  Sparkles,
   ExternalLink,
   Users,
   Radio,
@@ -31,7 +30,7 @@ import {
 } from "lucide-react";
 
 const WalletAnalyzer = ({ initialAddress = "" }) => {
-  const [addressInput, setAddressInput] = useState(initialAddress || "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo");
+  const [addressInput, setAddressInput] = useState(initialAddress || "");
   const [loading, setLoading] = useState(false);
   const [walletResult, setWalletResult] = useState(null);
   const [error, setError] = useState(null);
@@ -63,9 +62,8 @@ const WalletAnalyzer = ({ initialAddress = "" }) => {
 
   useEffect(() => {
     if (initialAddress) {
+      setAddressInput(initialAddress);
       handleScan(initialAddress);
-    } else if (!walletResult) {
-      handleScan("34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo");
     }
   }, [initialAddress]);
 
@@ -506,6 +504,21 @@ const WalletAnalyzer = ({ initialAddress = "" }) => {
               currentRiskScore={walletResult.riskScore}
             />
           )}
+        </div>
+      )}
+
+      {/* Clean Initial / Empty State */}
+      {!loading && !walletResult && !error && (
+        <div className="cyber-card rounded-2xl p-12 text-center border border-cyan-500/20 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mx-auto text-cyan-400">
+            <Search className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold font-heading text-white">Enter Address to Profile</h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto font-sans">
+              Provide any Bitcoin Legacy (1...), P2SH (3...), SegWit (bc1q...), or Taproot (bc1p...) address to execute live on-chain profiling and 5-axis deterministic risk assessment.
+            </p>
+          </div>
         </div>
       )}
 
