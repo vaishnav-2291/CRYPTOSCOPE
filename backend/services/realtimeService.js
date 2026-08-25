@@ -2,7 +2,7 @@
  * CryptoScope AI — Multi-User Isolated Server-Sent Events (SSE) Realtime Broadcaster
  */
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET || "cryptoscope_secret_key_default_2026";
+const { getJwtSecret } = require("../config/jwtConfig");
 
 class RealtimeService {
     constructor() {
@@ -20,7 +20,8 @@ class RealtimeService {
 
         if (!authenticatedUser && req.query.token) {
             try {
-                const decoded = jwt.verify(req.query.token, JWT_SECRET);
+                const secret = getJwtSecret();
+                const decoded = jwt.verify(req.query.token, secret);
                 authenticatedUser = decoded;
             } catch {
                 // Keep as guest

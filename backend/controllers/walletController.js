@@ -8,6 +8,7 @@ const { lookupEntity } = require("../services/entityService");
 const cacheService = require("../services/cacheService");
 const realtimeService = require("../services/realtimeService");
 const { logActivity } = require("../services/activityService");
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const axios = require("axios");
 
@@ -15,6 +16,16 @@ const marketService = require("../services/marketService");
 
 function isDbConnected() {
     return mongoose.connection && mongoose.connection.readyState === 1;
+}
+
+/**
+ * Generate cryptographically secure collision-resistant incident ID
+ */
+function generateIncidentId() {
+    const year = new Date().getFullYear();
+    const ts = Date.now().toString(36).toUpperCase();
+    const entropy = crypto.randomBytes(3).toString("hex").toUpperCase();
+    return `INC-${year}-${ts}-${entropy}`;
 }
 
 /**
@@ -88,7 +99,7 @@ exports.fetchWallet = async (req, res) => {
         // 4. If High Risk / Exploit / OFAC Triggered, persist SecurityAlert
         if (risk.riskScore >= 70 || risk.riskLevel === "High" || data.entityTag?.isSanctioned || data.entityTag?.isMixer) {
             try {
-                const incidentId = `INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+                const incidentId = generateIncidentId();
                 const topRule = risk.ruleTriggers[0]?.title || "High Risk Deterministic Anomaly";
                 const primarySeverity = risk.riskScore >= 80 ? "CRITICAL" : "HIGH";
 
@@ -372,7 +383,7 @@ exports.getRiskTrend = async (req, res) => {
 };
 
 // =============================================================================
-// PUBLIC SHAREABLE REPORT (Read from MongoDB)
+// PUBLIC SHAREABLE REPORT (Read from MongoDB or live with sanitized output)
 // =============================================================================
 exports.getPublicReport = async (req, res) => {
     if (!isDbConnected()) {
@@ -384,11 +395,11 @@ exports.getPublicReport = async (req, res) => {
         let scan = null;
 
         if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-            scan = await Wallet.findById(identifier);
+            scan = await Wallet.findById(identifier).select("-__v");
         }
 
         if (!scan) {
-            scan = await Wallet.findOne({ address: identifier }).sort({ createdAt: -1 });
+            scan = await Wallet.findOne({ address: identifier }).sort({ createdAt: -1 }).select("-__v");
         }
 
         if (!scan) {
@@ -400,28 +411,52 @@ exports.getPublicReport = async (req, res) => {
                 success: true,
                 report: {
                     address: data.address,
+                    network: "bitcoin",
                     balance: data.balance,
                     balanceUSD: Number((data.balance * btcPrice).toFixed(2)),
                     totalReceived: data.totalReceived,
                     totalSent: data.totalSent,
-                    transactionCount: data.n_tx,
+                    transactions: data.n_tx,
                     riskScore: risk.riskScore,
                     riskLevel: risk.riskLevel,
-                    breakdown: risk.breakdown,
+                    scoreBreakdown: risk.breakdown,
                     ruleTriggers: risk.ruleTriggers,
                     aiReport: risk.aiReport,
                     entityTag: data.entityTag,
-                    clustering: data.clustering,
-                    transactions: data.transactions.slice(0, 15),
+                    clusteringInfo: data.clustering,
                     graphData: data.graphData,
-                    createdAt: data.scannedAt,
+                    scannedAt: data.scannedAt || new Date().toISOString(),
                 },
             });
         }
 
+        // Sanitize MongoDB document for public consumption (never expose user ID or private internals)
+        const sanitized = {
+            id: scan._id,
+            address: scan.address,
+            network: scan.network || "bitcoin",
+            balance: scan.balance,
+            balanceUSD: scan.balanceUSD,
+            totalReceived: scan.totalReceived,
+            totalSent: scan.totalSent,
+            transactions: scan.transactions,
+            unconfirmedTxCount: scan.unconfirmedTxCount,
+            riskScore: scan.riskScore,
+            riskLevel: scan.riskLevel,
+            riskFactors: scan.riskFactors,
+            aiReport: scan.aiReport,
+            scoreBreakdown: scan.scoreBreakdown,
+            ruleTriggers: scan.ruleTriggers,
+            entityTag: scan.entityTag,
+            clusteringInfo: scan.clusteringInfo,
+            graphData: scan.graphData,
+            status: scan.status,
+            scannedAt: scan.scannedAt || scan.createdAt,
+        };
+
         res.json({
             success: true,
-            report: scan,
+            report: sanitized,
         });
     } catch (err) {
         res.status(500).json({
@@ -661,29 +696,37 @@ exports.rescanWatchlist = async (req, res) => {
         }
 
         const changes = [];
-        for (let item of user.watchlist) {
-            try {
-                const data = await getWalletData(item.address);
-                const risk = calculateRisk(data);
-                const scoreDiff = risk.riskScore - item.lastRiskScore;
+        const BATCH_SIZE = 4;
 
-                if (scoreDiff !== 0) {
-                    changes.push({
-                        address: item.address,
-                        label: item.label,
-                        oldScore: item.lastRiskScore,
-                        newScore: risk.riskScore,
-                        oldLevel: item.lastRiskLevel,
-                        newLevel: risk.riskLevel,
-                        diff: scoreDiff,
-                    });
-                }
+        // Process watchlist in bounded concurrent batches of 4
+        for (let i = 0; i < user.watchlist.length; i += BATCH_SIZE) {
+            const batch = user.watchlist.slice(i, i + BATCH_SIZE);
+            await Promise.all(
+                batch.map(async (item) => {
+                    try {
+                        const data = await getWalletData(item.address);
+                        const risk = calculateRisk(data);
+                        const scoreDiff = risk.riskScore - item.lastRiskScore;
 
-                item.lastRiskScore = risk.riskScore;
-                item.lastRiskLevel = risk.riskLevel;
-            } catch {
-                // Ignore individual network blips
-            }
+                        if (scoreDiff !== 0) {
+                            changes.push({
+                                address: item.address,
+                                label: item.label,
+                                oldScore: item.lastRiskScore,
+                                newScore: risk.riskScore,
+                                oldLevel: item.lastRiskLevel,
+                                newLevel: risk.riskLevel,
+                                diff: scoreDiff,
+                            });
+                        }
+
+                        item.lastRiskScore = risk.riskScore;
+                        item.lastRiskLevel = risk.riskLevel;
+                    } catch {
+                        // Ignore individual network blips without aborting batch
+                    }
+                })
+            );
         }
 
         await user.save();
@@ -764,12 +807,20 @@ exports.getSecurityAlerts = async (req, res) => {
 };
 
 exports.simulateSecurityAlert = async (req, res) => {
+    // Strictly disable simulation in production environments
+    if (process.env.NODE_ENV === "production") {
+        return res.status(403).json({
+            success: false,
+            message: "Simulation endpoints are strictly disabled in production environments.",
+        });
+    }
+
     if (!isDbConnected()) {
         return res.status(503).json({ success: false, message: "Database unavailable." });
     }
 
     try {
-        const incidentId = `INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+        const incidentId = generateIncidentId();
         const sampleAddress = "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo";
 
         const alertDoc = new SecurityAlert({

@@ -1,4 +1,4 @@
-const { test, describe } = require("node:test");
+const { test, describe, before } = require("node:test");
 const assert = require("node:assert");
 const http = require("http");
 
@@ -38,103 +38,130 @@ function makeRequest(path, method = "GET", body = null, headers = {}) {
 }
 
 describe("CryptoScope AI End-to-End Live API Integration Tests", () => {
-    test("1. Root & Health Check Endpoint", async () => {
+    let authToken = null;
+    const testEmail = `e2e_analyst_${Date.now()}@cryptoscope.ai`;
+    const testPassword = "StrongPassword@2026";
+
+    before(async () => {
+        // Register authentic test analyst
+        const regRes = await makeRequest("/api/auth/register", "POST", {
+            name: "E2E Analyst",
+            email: testEmail,
+            password: testPassword,
+        });
+
+        if (regRes.status === 201 && regRes.data?.token) {
+            authToken = regRes.data.token;
+        } else {
+            const loginRes = await makeRequest("/api/auth/login", "POST", {
+                email: testEmail,
+                password: testPassword,
+            });
+            authToken = loginRes.data?.token;
+        }
+    });
+
+    test("1. Root & Health Check Endpoint (Public)", async () => {
         const res = await makeRequest("/api/health");
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.data.success, true);
         assert.ok(res.data.status.includes("Operational"));
     });
 
-    test("2. Single Wallet Scan - Binance Cold Storage", async () => {
+    test("2. Unauthenticated Wallet Scan -> 401 Unauthorized", async () => {
         const res = await makeRequest("/api/wallet/34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo");
+        assert.strictEqual(res.status, 401);
+        assert.strictEqual(res.data.success, false);
+    });
+
+    test("3. Authenticated Single Wallet Scan - Binance Cold Storage", async () => {
+        assert.ok(authToken, "Auth token must be available");
+        const res = await makeRequest("/api/wallet/34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo", "GET", null, {
+            Authorization: `Bearer ${authToken}`,
+        });
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.data.success, true);
         assert.ok(res.data.riskScore >= 0 && res.data.riskScore <= 100);
-        assert.strictEqual(res.data.entityTag.name, "Binance Cold Storage");
-        assert.ok(res.data.transactions.length > 0);
-        assert.ok(res.data.breakdown.transactionRisk !== undefined);
+        assert.strictEqual(res.data.entityTag?.name, "Binance Cold Storage");
+        assert.ok(res.data.transactions?.length > 0);
+        assert.ok(res.data.breakdown?.transactionRisk !== undefined);
     });
 
-    test("3. Single Wallet Scan - Satoshi Nakamoto Genesis", async () => {
-        const res = await makeRequest("/api/wallet/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa");
+    test("4. Authenticated Single Wallet Scan - Satoshi Genesis", async () => {
+        assert.ok(authToken, "Auth token must be available");
+        const res = await makeRequest("/api/wallet/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "GET", null, {
+            Authorization: `Bearer ${authToken}`,
+        });
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.data.success, true);
         assert.ok(res.data.riskScore >= 0 && res.data.riskScore <= 100);
-        assert.strictEqual(res.data.entityTag.name, "Satoshi Nakamoto (Genesis Block)");
+        assert.strictEqual(res.data.entityTag?.name, "Satoshi Nakamoto (Genesis Block)");
     });
 
-    test("4. Batch Multi-Address Parallel Scan", async () => {
+    test("5. Authenticated Batch Multi-Address Scan", async () => {
+        assert.ok(authToken, "Auth token must be available");
         const addresses = [
             "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
             "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
             "bc1qa5wkgaew2dkv56kfvj49j0av5nmar2m78mtgggh3txac90gaxuvsgg0wqj",
         ];
-        const res = await makeRequest("/api/wallet/batch-scan", "POST", { addresses });
+        const res = await makeRequest("/api/wallet/batch-scan", "POST", { addresses }, {
+            Authorization: `Bearer ${authToken}`,
+        });
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.data.success, true);
         assert.strictEqual(res.data.scannedCount, 3);
         assert.strictEqual(res.data.results.length, 3);
     });
 
-    test("5. Fund Flow Graph Endpoint", async () => {
-        const res = await makeRequest("/api/wallet/34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo/graph");
-        assert.strictEqual(res.status, 200);
-        assert.strictEqual(res.data.success, true);
-        assert.ok(res.data.graphData.nodes.length > 0);
-        assert.ok(res.data.graphData.edges.length > 0);
-    });
-
-    test("6. Live Crypto Market & Sparklines Feed", async () => {
-        const res = await makeRequest("/api/crypto/market");
-        assert.strictEqual(res.status, 200);
-        assert.strictEqual(res.data.success, true);
-        assert.ok(res.data.data.bitcoin !== undefined);
-        assert.ok(res.data.data.bitcoin.usd > 0);
-    });
-
-    test("7. Intelligence News Feed", async () => {
-        const res = await makeRequest("/api/crypto/news");
-        assert.strictEqual(res.status, 200);
-        assert.strictEqual(res.data.success, true);
-        assert.ok(res.data.articles.length > 0);
-    });
-
-    test("8. User Authentication - Demo Analyst Login", async () => {
-        const res = await makeRequest("/api/auth/login", "POST", {
-            email: "analyst@cryptoscope.ai",
-            password: "Analyst@2026",
+    test("6. Authenticated Fund Flow Graph Endpoint", async () => {
+        assert.ok(authToken, "Auth token must be available");
+        const res = await makeRequest("/api/wallet/34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo/graph", "GET", null, {
+            Authorization: `Bearer ${authToken}`,
         });
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.data.success, true);
-        assert.ok(res.data.token !== undefined);
+        assert.ok(res.data.graphData?.nodes?.length > 0);
+        assert.ok(res.data.graphData?.edges?.length > 0);
     });
 
-    test("9. Watchlist Management & Re-Scan", async () => {
+    test("7. Public Shared Threat Report -> 200 OK (Unauthenticated Access)", async () => {
+        const res = await makeRequest("/api/wallet/report/34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo");
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.data.success, true);
+        assert.ok(res.data.report?.address === "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo");
+    });
+
+    test("8. Live Crypto Market & Sparklines Feed (Public)", async () => {
+        const res = await makeRequest("/api/crypto/market");
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.data.success, true);
+        assert.ok(res.data.data?.bitcoin !== undefined);
+        assert.ok(res.data.data.bitcoin.usd > 0);
+    });
+
+    test("9. Intelligence News Feed (Public)", async () => {
+        const res = await makeRequest("/api/crypto/news");
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.data.success, true);
+        assert.ok(res.data.articles?.length > 0);
+    });
+
+    test("10. Authenticated Watchlist Management & Bounded Re-Scan", async () => {
+        assert.ok(authToken, "Auth token must be available");
         const addRes = await makeRequest("/api/wallet/watchlist", "POST", {
             address: "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
             label: "Binance Vault",
+        }, {
+            Authorization: `Bearer ${authToken}`,
         });
         assert.strictEqual(addRes.status, 200);
         assert.strictEqual(addRes.data.success, true);
 
-        const rescanRes = await makeRequest("/api/wallet/watchlist/rescan", "POST");
+        const rescanRes = await makeRequest("/api/wallet/watchlist/rescan", "POST", null, {
+            Authorization: `Bearer ${authToken}`,
+        });
         assert.strictEqual(rescanRes.status, 200);
         assert.strictEqual(rescanRes.data.success, true);
-    });
-
-    test("10. Admin Platform Telemetry (with Admin Token)", async () => {
-        const loginRes = await makeRequest("/api/auth/login", "POST", {
-            email: "admin@cryptoscope.ai",
-            password: "Admin@2026",
-        });
-        assert.strictEqual(loginRes.status, 200);
-        const adminToken = loginRes.data.token;
-
-        const res = await makeRequest("/api/admin/stats", "GET", null, {
-            Authorization: `Bearer ${adminToken}`,
-        });
-        assert.strictEqual(res.status, 200);
-        assert.strictEqual(res.data.success, true);
-        assert.ok(res.data.platformStats.cacheDiagnostics !== undefined);
     });
 });

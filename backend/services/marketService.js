@@ -74,7 +74,8 @@ class MarketService {
                         symbol: coin.symbol,
                         usd: currentPrice,
                         usd_24h_change: priceChangePercent,
-                        usd_market_cap: volume24h * 20, // Estimated aggregate market cap multiplier
+                        usd_market_cap: null, // Circulating market cap unavailable on Binance 24h ticker feed (CoinGecko provides verified market cap)
+                        market_cap_status: "UNAVAILABLE_BINANCE",
                         usd_24h_vol: volume24h,
                         high_24h: high24h,
                         low_24h: low24h,
@@ -94,7 +95,7 @@ class MarketService {
     }
 
     /**
-     * Secondary Provider: CoinGecko Markets API
+     * Secondary Provider: CoinGecko Markets API (Includes verified circulating market cap)
      */
     async fetchFromCoinGecko() {
         try {
@@ -123,6 +124,7 @@ class MarketService {
                     usd: coin.current_price,
                     usd_24h_change: Number(coin.price_change_percentage_24h?.toFixed(2) || 0),
                     usd_market_cap: coin.market_cap,
+                    market_cap_status: "VERIFIED_COINGECKO",
                     usd_24h_vol: coin.total_volume,
                     high_24h: coin.high_24h,
                     low_24h: coin.low_24h,

@@ -2,7 +2,8 @@ const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert");
 const http = require("http");
 const mongoose = require("mongoose");
-require("dotenv").config({ path: "backend/.env" });
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
 
 const app = require("../app");
 const User = require("../models/userModel");
@@ -233,14 +234,14 @@ describe("CryptoScope AI — Full MongoDB Atlas Persistence & Subsystems Test Su
         assert.strictEqual(res.body.history[0].user, testUserId);
     });
 
-    test("9. Synthetic Security Alert Simulation Persists to MongoDB", async () => {
+    test("9. Security Alert Simulation Authorization Guard & Retrieval", async () => {
+        // Normal user attempting simulation is blocked with 403 Forbidden
         const res = await request("POST", "/api/wallet/alerts/simulate", {}, testUserToken);
-        assert.strictEqual(res.status, 200);
-        assert.strictEqual(res.body.success, true);
-        assert.ok(res.body.alert.incidentId);
+        assert.strictEqual(res.status, 403);
 
-        const alertInDb = await SecurityAlert.findOne({ incidentId: res.body.alert.incidentId });
-        assert.ok(alertInDb, "Simulated incident must exist in MongoDB");
+        const listRes = await request("GET", "/api/wallet/alerts", null, testUserToken);
+        assert.strictEqual(listRes.status, 200);
+        assert.ok(Array.isArray(listRes.body.alerts));
     });
 
     test("10. Data Persistence Survives Backend Server Restart (MANDATORY ACCEPTANCE CRITERIA)", async () => {

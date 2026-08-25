@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const path = require("path");
 const fs = require("fs");
 const mongoose = require("mongoose");
@@ -19,17 +20,98 @@ const app = express();
 // =============================================================================
 // Security & Parsing Middleware
 // =============================================================================
+
+// 1. Helmet HTTP Security Headers
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: [
+                    "'self'",
+                    "'unsafe-inline'", // Required for Vite / React hot script tags in dev
+                    "https://accounts.google.com",
+                    "https://apis.google.com",
+                ],
+                styleSrc: [
+                    "'self'",
+                    "'unsafe-inline'", // Required for Tailwind / inline styles
+                    "https://fonts.googleapis.com",
+                ],
+                fontSrc: [
+                    "'self'",
+                    "https://fonts.gstatic.com",
+                    "data:",
+                ],
+                imgSrc: [
+                    "'self'",
+                    "data:",
+                    "blob:",
+                    "https:",
+                    "http:",
+                ],
+                connectSrc: [
+                    "'self'",
+                    "http://localhost:*",
+                    "ws://localhost:*",
+                    "https://accounts.google.com",
+                    "https://api.binance.com",
+                    "https://api.coingecko.com",
+                    "https://mempool.space",
+                    "https://blockstream.info",
+                ],
+                frameSrc: [
+                    "'self'",
+                    "https://accounts.google.com",
+                ],
+                objectSrc: ["'none'"],
+                upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
+            },
+        },
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+        crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+        referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+        hsts: process.env.NODE_ENV === "production"
+            ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+            : false,
+    })
+);
+
+// 2. Strict CORS Allowlist Policy
+const rawAllowedOrigins = process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173";
+const allowedOriginsList = rawAllowedOrigins
+    .split(",")
+    .map((o) => o.trim().toLowerCase())
+    .filter(Boolean);
+
 app.use(
     cors({
         origin: (origin, callback) => {
-            if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+            // Allow same-origin / server-to-server / tools without origin header
+            if (!origin) {
                 return callback(null, true);
             }
-            callback(null, true);
+
+            const normalizedOrigin = origin.trim().toLowerCase();
+
+            // Strict exact match against configured allowlist
+            if (allowedOriginsList.includes(normalizedOrigin)) {
+                return callback(null, true);
+            }
+
+            // In development or test mode, permit localhost on any port
+            if (process.env.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
+                return callback(null, true);
+            }
+
+            // Reject untrusted external origins
+            return callback(new Error(`CORS Error: Origin '${origin}' is not permitted by CRYPTOSCOPE security policy.`));
         },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+        exposedHeaders: ["Content-Range", "X-Content-Range"],
+        maxAge: 86400,
     })
 );
 

@@ -5,31 +5,37 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 const { logActivity } = require("../services/activityService");
 const realtimeService = require("../services/realtimeService");
+const emailService = require("../services/emailService");
 
-const JWT_SECRET = process.env.JWT_SECRET || "cryptoscope_secret_key_default_2026";
-const ACCESS_TOKEN_EXPIRY = "2h";
-const REFRESH_TOKEN_EXPIRY = "7d";
+const { getJwtSecret, ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } = require("../config/jwtConfig");
 
 function isDbConnected() {
     return mongoose.connection && mongoose.connection.readyState === 1;
 }
 
+const hashToken = (token) => {
+    if (!token || typeof token !== "string") return null;
+    return crypto.createHash("sha256").update(token.trim()).digest("hex");
+};
+
 const generateTokens = (user) => {
+    const secret = getJwtSecret();
     const accessToken = jwt.sign(
         {
             id: user._id.toString(),
             email: user.email,
             role: user.role || "user",
         },
-        JWT_SECRET,
+        secret,
         { expiresIn: ACCESS_TOKEN_EXPIRY }
     );
 
     const refreshToken = jwt.sign(
         {
             id: user._id.toString(),
+            nonce: crypto.randomBytes(8).toString("hex"),
         },
-        JWT_SECRET,
+        secret,
         { expiresIn: REFRESH_TOKEN_EXPIRY }
     );
 
@@ -72,8 +78,9 @@ exports.register = async (req, res) => {
             status: "active",
         });
 
-        const { accessToken, refreshToken } = generateTokens(user);
-        user.refreshToken = refreshToken;
+        const { accessToken, refreshToken: rawRefreshToken } = generateTokens(user);
+        // Store only the SHA-256 hash in MongoDB
+        user.refreshToken = hashToken(rawRefreshToken);
         user.lastLogin = new Date();
         await user.save();
 
@@ -94,7 +101,7 @@ exports.register = async (req, res) => {
             message: "Account registered successfully and stored in MongoDB.",
             token: accessToken,
             accessToken,
-            refreshToken,
+            refreshToken: rawRefreshToken,
             user: { id: user._id, name: user.name, email: user.email, role: user.role },
         });
     } catch (error) {
@@ -159,9 +166,10 @@ exports.login = async (req, res) => {
         }
 
         // Generate tokens with trusted role directly from MongoDB document
-        const { accessToken, refreshToken } = generateTokens(user);
+        const { accessToken, refreshToken: rawRefreshToken } = generateTokens(user);
 
-        user.refreshToken = refreshToken;
+        // Store only the SHA-256 hash in MongoDB
+        user.refreshToken = hashToken(rawRefreshToken);
         user.lastLogin = new Date();
         user.lastLoginIp = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
         await user.save();
@@ -183,7 +191,7 @@ exports.login = async (req, res) => {
             message: "Login successful.",
             token: accessToken,
             accessToken,
-            refreshToken,
+            refreshToken: rawRefreshToken,
             user: {
                 id: user._id,
                 name: user.name,
@@ -207,14 +215,26 @@ exports.refreshToken = async (req, res) => {
 
     try {
         const { refreshToken } = req.body;
-        if (!refreshToken) {
+        if (!refreshToken || typeof refreshToken !== "string") {
             return res.status(400).json({ success: false, message: "Refresh token is required." });
         }
 
-        const decoded = jwt.verify(refreshToken, JWT_SECRET);
+        const secret = getJwtSecret();
+        const decoded = jwt.verify(refreshToken, secret);
         const user = await User.findById(decoded.id);
 
-        if (!user || user.refreshToken !== refreshToken) {
+        if (!user || !user.refreshToken) {
+            return res.status(401).json({ success: false, message: "Invalid session or expired refresh token." });
+        }
+
+        const hashedClientToken = hashToken(refreshToken);
+
+        // Migration compatibility: support hashed token and legacy plaintext token
+        const isValidToken =
+            user.refreshToken === hashedClientToken ||
+            user.refreshToken === refreshToken;
+
+        if (!isValidToken) {
             return res.status(401).json({ success: false, message: "Invalid session or expired refresh token." });
         }
 
@@ -223,7 +243,8 @@ exports.refreshToken = async (req, res) => {
         }
 
         const tokens = generateTokens(user);
-        user.refreshToken = tokens.refreshToken;
+        // Rotate and store only SHA-256 hash
+        user.refreshToken = hashToken(tokens.refreshToken);
         await user.save();
 
         res.json({
@@ -312,7 +333,8 @@ exports.googleAuthRedirect = async (req, res) => {
             createdAt: Date.now(),
         };
 
-        const state = jwt.sign(statePayload, JWT_SECRET, { expiresIn: "10m" });
+        const secret = getJwtSecret();
+        const state = jwt.sign(statePayload, secret, { expiresIn: "10m" });
 
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: "offline",
@@ -339,10 +361,12 @@ exports.googleAuthCallback = async (req, res) => {
     let clientOrigin = "http://localhost:3000";
     const { code, state, error, error_description } = req.query;
 
+    const secret = getJwtSecret();
+
     // Decode state to retrieve original frontend client origin
     if (state) {
         try {
-            const decoded = jwt.verify(state, JWT_SECRET);
+            const decoded = jwt.verify(state, secret);
             if (decoded.origin) {
                 clientOrigin = decoded.origin;
             }
@@ -366,7 +390,7 @@ exports.googleAuthCallback = async (req, res) => {
 
     // 3. Verify state token (CSRF and tamper protection)
     try {
-        jwt.verify(state, JWT_SECRET);
+        jwt.verify(state, secret);
     } catch (err) {
         return res.redirect(`${clientOrigin}/login?error=${encodeURIComponent("OAuth session expired or security verification failed. Please try again.")}`);
     }
@@ -446,8 +470,8 @@ exports.googleAuthCallback = async (req, res) => {
         }
 
         // 8. Generate standard CRYPTOSCOPE JWT access and refresh tokens
-        const { accessToken, refreshToken } = generateTokens(user);
-        user.refreshToken = refreshToken;
+        const { accessToken, refreshToken: rawRefreshToken } = generateTokens(user);
+        user.refreshToken = hashToken(rawRefreshToken);
         user.lastLogin = new Date();
         user.lastLoginIp = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
         await user.save();
@@ -470,7 +494,7 @@ exports.googleAuthCallback = async (req, res) => {
 
         // 10. Redirect to frontend with tokens
         return res.redirect(
-            `${clientOrigin}/login?oauth_success=true&token=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}`
+            `${clientOrigin}/login?oauth_success=true&token=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(rawRefreshToken)}`
         );
     } catch (oauthErr) {
         console.error("Google OAuth Exchange Error:", oauthErr.message);
@@ -513,23 +537,23 @@ exports.forgotPassword = async (req, res) => {
                 req,
             });
 
-            // Development / Local environment simulated email output (never exposed via API JSON)
+            // Dispatch real password reset email via Nodemailer SMTP service
             const clientOrigin = req.headers.referer
                 ? new URL(req.headers.referer).origin
                 : (process.env.FRONTEND_URL || "http://localhost:3000");
             const resetUrl = `${clientOrigin}/reset-password?token=${rawToken}`;
-            console.log(`\n================== [SECURE EMAIL SIMULATOR] ==================`);
-            console.log(`To: ${user.email}`);
-            console.log(`Subject: Password Reset Request for CryptoScope AI`);
-            console.log(`Reset Link: ${resetUrl}`);
-            console.log(`Expires in: 15 minutes (Single-Use Only)`);
-            console.log(`===============================================================\n`);
+
+            await emailService.sendPasswordResetEmail({
+                to: user.email,
+                name: user.name,
+                resetUrl,
+            });
         }
 
         // Generic response prevents account enumeration attack and never exposes raw token
         res.json({
             success: true,
-            message: "If that email address is registered, password reset instructions have been generated.",
+            message: "If that email address is registered, password reset instructions have been sent to your inbox. Please check your email.",
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

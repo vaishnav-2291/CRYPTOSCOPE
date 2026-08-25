@@ -19,11 +19,14 @@ const {
     simulateSecurityAlert,
 } = require("../controllers/walletController");
 
-const { authMiddleware, requireAdmin } = require("../middleware/authMiddleware");
+const { authMiddleware, optionalAuth, requireAdmin } = require("../middleware/authMiddleware");
 const { validateAddressParam, validateBatchAddresses } = require("../middleware/validators");
 const { scanLimiter } = require("../middleware/rateLimiter");
 
-// All Wallet Operations, Scanning, History, Activities, Watchlist, and Alerts require authentication
+// 1. Public Shareable Report Endpoint (Allows unauthenticated viewing with optional auth)
+router.get("/report/:id", optionalAuth, getPublicReport);
+
+// 2. All Private Wallet Operations, Scanning, History, Activities, Watchlist, and Alerts require authentication
 router.use(authMiddleware);
 
 // Dashboard & History (User Scoped)
@@ -44,8 +47,7 @@ router.delete("/watchlist/:address", removeFromWatchlist);
 // Multi-Address Batch Scanning
 router.post("/batch-scan", scanLimiter, validateBatchAddresses, batchScan);
 
-// Address Deep-Dive Sub-resources & Reports
-router.get("/report/:id", getPublicReport);
+// Address Deep-Dive Sub-resources (Authenticated)
 router.get("/:address/transactions", validateAddressParam, getTransactions);
 router.get("/:address/graph", validateAddressParam, getWalletGraph);
 router.get("/:address/trend", validateAddressParam, getRiskTrend);

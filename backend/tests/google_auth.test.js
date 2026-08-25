@@ -1,4 +1,5 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
 const test = require("node:test");
 const assert = require("node:assert");
 const http = require("http");
@@ -6,8 +7,7 @@ const app = require("../app");
 const User = require("../models/userModel");
 const UserActivity = require("../models/activityModel");
 const jwt = require("jsonwebtoken");
-
-const JWT_SECRET = process.env.JWT_SECRET || "cryptoscope_secret_key_default_2026";
+const { getJwtSecret } = require("../config/jwtConfig");
 
 test("Google Auth - Model Schema Validation", () => {
     // 1. Google user without password is valid
@@ -78,7 +78,7 @@ test("Google Auth - Authorization Endpoint Redirects to Google Accounts", async 
             const urlObj = new URL(location);
             const stateParam = urlObj.searchParams.get("state");
             assert.ok(stateParam, "State param must be present in Google redirect");
-            const decodedState = jwt.verify(stateParam, JWT_SECRET);
+            const decodedState = jwt.verify(stateParam, getJwtSecret());
             assert.strictEqual(decodedState.origin, "http://localhost:5173", "State should preserve client origin");
             assert.ok(decodedState.nonce, "State must include random nonce");
         } else {
@@ -96,7 +96,7 @@ test("Google Auth - Callback Rejection on OAuth Error / User Cancellation", asyn
 
     try {
         // Create valid state
-        const state = jwt.sign({ nonce: "testnonce", origin: "http://localhost:5173" }, JWT_SECRET, { expiresIn: "5m" });
+        const state = jwt.sign({ nonce: "testnonce", origin: "http://localhost:5173" }, getJwtSecret(), { expiresIn: "5m" });
 
         // Simulate user clicking "Cancel" in Google consent screen
         const res = await fetch(`http://localhost:${port}/api/auth/google/callback?error=access_denied&state=${state}`, {
@@ -127,7 +127,7 @@ test("Google Auth - JWT Token Generation & /api/auth/me Verification", async () 
 
         const token = jwt.sign(
             { id: mockUser._id, email: mockUser.email, role: mockUser.role },
-            JWT_SECRET,
+            getJwtSecret(),
             { expiresIn: "2h" }
         );
 

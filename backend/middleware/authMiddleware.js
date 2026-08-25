@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { getJwtSecret } = require("../config/jwtConfig");
 
 /**
  * Extract raw JWT token from header (handles 'Bearer <token>' or raw token)
@@ -26,7 +27,8 @@ const authMiddleware = (req, res, next) => {
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "cryptoscope_secret_key_default_2026");
+        const secret = getJwtSecret();
+        const decoded = jwt.verify(token, secret);
         req.user = decoded;
         next();
     } catch (error) {
@@ -45,7 +47,8 @@ const optionalAuth = (req, res, next) => {
     try {
         const token = extractToken(req);
         if (token) {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || "cryptoscope_secret_key_default_2026");
+            const secret = getJwtSecret();
+            const decoded = jwt.verify(token, secret);
             req.user = decoded;
         } else {
             req.user = null;
