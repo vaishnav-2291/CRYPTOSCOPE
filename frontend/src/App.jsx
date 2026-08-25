@@ -29,7 +29,7 @@ function App() {
           {/* Public Standalone Scan Report */}
           <Route path="/report/:id" element={<PublicReport />} />
 
-          {/* Authentication Routes */}
+          {/* Authentication Routes (Public) */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -37,16 +37,106 @@ function App() {
 
           {/* Main App with Persistent Navbar & Sidebar */}
           <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/scan" element={<WalletScan />} />
-            <Route path="/batch" element={<BatchScan />} />
-            <Route path="/compare" element={<Compare />} />
-            <Route path="/watchlist" element={<Watchlist />} />
-            <Route path="/threat" element={<ThreatPage />} />
-            <Route path="/soc" element={<SOCPage />} />
-            <Route path="/history" element={<History />} />
+            {/* Public Intelligence Page */}
             <Route path="/market" element={<MarketPage />} />
+
+            {/* Protected Core Intelligence Pages */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scan"
+              element={
+                <ProtectedRoute>
+                  <WalletScan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scanner"
+              element={
+                <ProtectedRoute>
+                  <WalletScan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/wallet-analyzer"
+              element={
+                <ProtectedRoute>
+                  <WalletScan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/batch"
+              element={
+                <ProtectedRoute>
+                  <BatchScan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/compare"
+              element={
+                <ProtectedRoute>
+                  <Compare />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/watchlist"
+              element={
+                <ProtectedRoute>
+                  <Watchlist />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/threat"
+              element={
+                <ProtectedRoute>
+                  <ThreatPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/alerts"
+              element={
+                <ProtectedRoute>
+                  <ThreatPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/soc"
+              element={
+                <ProtectedRoute>
+                  <SOCPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <History />
+                </ProtectedRoute>
+              }
+            />
 
             {/* User Profile (Protected) */}
             <Route
@@ -70,7 +160,7 @@ function App() {
           </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

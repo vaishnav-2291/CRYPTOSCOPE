@@ -209,7 +209,7 @@ const SOCDashboard = () => {
         {filteredIncidents.length === 0 ? (
           <div className="py-12 text-center text-slate-400 font-mono text-xs space-y-2">
             <ShieldAlert className="w-8 h-8 mx-auto text-slate-600 mb-2" />
-            <div className="text-white font-bold text-sm">No security incidents detected</div>
+            <div className="text-white font-bold text-sm">No security alerts</div>
             <p className="text-slate-500 text-[11px] max-w-md mx-auto">
               Real-time intrusion alerts are automatically generated and persisted whenever high-risk, mixer, or OFAC-sanctioned wallets are identified during scans.
             </p>

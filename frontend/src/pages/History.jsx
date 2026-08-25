@@ -157,7 +157,7 @@ function History() {
             </div>
           ) : filteredHistory.length === 0 ? (
             <div className="cyber-card rounded-2xl p-12 text-center text-slate-400 text-xs font-mono border border-white/5">
-              No scan history records found in MongoDB. Perform a scan to create persistent records.
+              No scans performed yet
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">

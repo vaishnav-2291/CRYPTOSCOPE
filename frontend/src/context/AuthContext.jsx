@@ -47,15 +47,17 @@ export const AuthProvider = ({ children }) => {
           if (res.data?.success && res.data?.user) {
             setUser(res.data.user);
             localStorage.setItem("user", JSON.stringify(res.data.user));
-          }
-        } catch (err) {
-          // Token invalid or expired
-          if (!localStorage.getItem("refreshToken")) {
+          } else {
             logout();
           }
+        } catch (err) {
+          logout();
+        } finally {
+          setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();

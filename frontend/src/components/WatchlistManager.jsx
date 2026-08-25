@@ -193,7 +193,7 @@ const WatchlistManager = ({ onSelectAddress }) => {
       {/* Watchlist Table */}
       {watchlist.length === 0 ? (
         <div className="py-8 text-center text-slate-400 text-xs">
-          Your watchlist is currently empty. Add Bitcoin addresses above to monitor their risk status.
+          No wallets in your watchlist yet
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/5">

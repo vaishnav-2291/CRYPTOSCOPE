@@ -36,7 +36,14 @@ exports.fetchWallet = async (req, res) => {
     if (!isDbConnected()) {
         return res.status(503).json({
             success: false,
-            message: "Database service is currently unavailable. Wallet scan cannot be persisted.",
+            message: "Database service is currently unavailable. Scans cannot be processed.",
+        });
+    }
+
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({
+            success: false,
+            message: "Authentication required to analyze Bitcoin wallets.",
         });
     }
 
@@ -53,7 +60,7 @@ exports.fetchWallet = async (req, res) => {
 
         // 3. Persist scan document to MongoDB
         const walletScan = new Wallet({
-            user: req.user?.id || null,
+            user: req.user.id,
             address: data.address,
             network: data.network || "bitcoin",
             scanType: "SINGLE_SCAN",
@@ -72,7 +79,6 @@ exports.fetchWallet = async (req, res) => {
             entityTag: data.entityTag,
             clusteringInfo: data.clustering,
             graphData: data.graphData,
-            isPublic: true,
             status: "COMPLETED",
             scannedAt: new Date(),
         });
@@ -88,7 +94,7 @@ exports.fetchWallet = async (req, res) => {
 
                 const alertDoc = new SecurityAlert({
                     incidentId,
-                    userId: req.user?.id || null,
+                    userId: req.user.id,
                     address: data.address,
                     threatCategory: data.entityTag?.category || "Heuristic Risk Anomaly",
                     ruleTrigger: risk.ruleTriggers[0]?.id ? `${risk.ruleTriggers[0].id} (${topRule})` : "RULE-RISK-HIGH",
@@ -108,8 +114,8 @@ exports.fetchWallet = async (req, res) => {
 
         // 5. Persistent User Activity Logging
         await logActivity({
-            userId: req.user?.id || null,
-            userEmail: req.user?.email || "guest@cryptoscope.ai",
+            userId: req.user.id,
+            userEmail: req.user.email,
             action: "WALLET_SCANNED",
             resourceType: "WALLET",
             resourceId: data.address,
@@ -173,6 +179,10 @@ exports.batchScan = async (req, res) => {
         return res.status(503).json({ success: false, message: "Database service unavailable." });
     }
 
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: "Authentication required to perform batch scans." });
+    }
+
     try {
         const addresses = req.validAddresses || [];
         const btcPriceUSD = await getLiveBtcPriceUSD();
@@ -190,7 +200,7 @@ exports.batchScan = async (req, res) => {
 
                     // Save each scan to MongoDB
                     const scan = new Wallet({
-                        user: req.user?.id || null,
+                        user: req.user.id,
                         address: addr,
                         scanType: "BATCH_SCAN",
                         balance: data.balance,
@@ -203,7 +213,7 @@ exports.batchScan = async (req, res) => {
                         scoreBreakdown: risk.breakdown,
                         ruleTriggers: risk.ruleTriggers,
                         entityTag: data.entityTag,
-                        isPublic: true,
+                        status: "COMPLETED",
                         scannedAt: new Date(),
                     });
 
@@ -240,8 +250,8 @@ exports.batchScan = async (req, res) => {
 
         // Audit Log
         await logActivity({
-            userId: req.user?.id || null,
-            userEmail: req.user?.email || "guest@cryptoscope.ai",
+            userId: req.user.id,
+            userEmail: req.user.email,
             action: "BATCH_SCAN_EXECUTED",
             resourceType: "WALLET",
             details: { requestedCount: addresses.length, successfulCount: results.filter((r) => r.success).length },
@@ -429,8 +439,12 @@ exports.getHistory = async (req, res) => {
         return res.status(503).json({ success: false, message: "Database unavailable." });
     }
 
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: "Authentication required to view scan history." });
+    }
+
     try {
-        const query = req.user ? { user: req.user.id } : { user: null };
+        const query = { user: req.user.id };
         const history = await Wallet.find(query).sort({ createdAt: -1 }).limit(50);
 
         res.json({
@@ -447,15 +461,19 @@ exports.getHistory = async (req, res) => {
 };
 
 // =============================================================================
-// DASHBOARD STATISTICS (Aggregated directly from MongoDB)
+// DASHBOARD STATISTICS (Aggregated directly from MongoDB for Authenticated User)
 // =============================================================================
 exports.getDashboardStats = async (req, res) => {
     if (!isDbConnected()) {
         return res.status(503).json({ success: false, message: "Database unavailable." });
     }
 
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: "Authentication required to view dashboard statistics." });
+    }
+
     try {
-        const userQuery = req.user && req.user.role !== "admin" ? { user: req.user.id } : {};
+        const userQuery = req.user.role === "admin" ? {} : { user: req.user.id };
         const [totalScans, highRisk, mediumRisk, lowRisk, allScans] = await Promise.all([
             Wallet.countDocuments(userQuery),
             Wallet.countDocuments({ ...userQuery, riskLevel: "High" }),
@@ -499,8 +517,8 @@ exports.getWatchlist = async (req, res) => {
         return res.status(503).json({ success: false, message: "Database unavailable." });
     }
 
-    if (!req.user) {
-        return res.json({ success: true, watchlist: [] });
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: "Authentication required to access watchlist." });
     }
 
     try {
@@ -701,8 +719,12 @@ exports.getUserActivities = async (req, res) => {
         return res.status(503).json({ success: false, message: "Database unavailable." });
     }
 
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: "Authentication required to view activities." });
+    }
+
     try {
-        const query = req.user ? { userId: req.user.id } : { userId: null };
+        const query = req.user.role === "admin" ? {} : { userId: req.user.id };
         const activities = await UserActivity.find(query).sort({ createdAt: -1 }).limit(50);
 
         res.json({
@@ -723,11 +745,12 @@ exports.getSecurityAlerts = async (req, res) => {
         return res.status(503).json({ success: false, message: "Database unavailable." });
     }
 
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: "Authentication required to view security alerts." });
+    }
+
     try {
-        let query = {};
-        if (req.user?.role !== "admin") {
-            query = req.user ? { userId: req.user.id } : { userId: null };
-        }
+        const query = req.user.role === "admin" ? {} : { userId: req.user.id };
         const alerts = await SecurityAlert.find(query).sort({ createdAt: -1 }).limit(50);
 
         res.json({

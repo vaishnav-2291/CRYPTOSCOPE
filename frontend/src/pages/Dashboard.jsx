@@ -34,31 +34,23 @@ const Dashboard = () => {
   const [watchlistCount, setWatchlistCount] = useState(0);
   const [recentScans, setRecentScans] = useState([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [statsRes, marketRes] = await Promise.all([
-          getDashboardStats().catch(() => null),
-          getMarketPrices().catch(() => null),
-        ]);
-
-        if (statsRes) setStats(statsRes);
+        const marketRes = await getMarketPrices().catch(() => null);
         if (marketRes?.data) setMarketData(marketRes.data);
 
         if (isAuthenticated) {
-          getWatchlist()
-            .then((wRes) => {
-              if (wRes?.watchlist) setWatchlistCount(wRes.watchlist.length);
-            })
-            .catch(() => {});
+          const [statsRes, wRes, hRes] = await Promise.all([
+            getDashboardStats().catch(() => null),
+            getWatchlist().catch(() => null),
+            getScanHistory().catch(() => null),
+          ]);
 
-          getScanHistory()
-            .then((hRes) => {
-              if (hRes?.history) setRecentScans(hRes.history.slice(0, 6));
-            })
-            .catch(() => {});
+          if (statsRes) setStats(statsRes);
+          if (wRes?.watchlist) setWatchlistCount(wRes.watchlist.length);
+          if (hRes?.history) setRecentScans(hRes.history.slice(0, 6));
         }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -425,7 +417,7 @@ const Dashboard = () => {
             <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto text-cyan-400">
               <Search className="w-6 h-6" />
             </div>
-            <div className="text-sm font-bold text-white">No wallets scanned yet</div>
+            <div className="text-sm font-bold text-white">No scans performed yet</div>
             <p className="text-xs text-slate-400 max-w-md mx-auto">
               Enter any Bitcoin address in the search box above to run a deterministic 5-axis heuristic scan and save it to your history.
             </p>

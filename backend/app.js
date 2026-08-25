@@ -119,9 +119,14 @@ const frontendDist = path.join(__dirname, "../frontend/dist");
 if (fs.existsSync(frontendDist)) {
     app.use(express.static(frontendDist));
 
-    // Express 5 SPA catch-all middleware
+    // Express 5 SPA catch-all middleware (routes only, skip static assets and files)
     app.use((req, res, next) => {
-        if (req.method === "GET" && !req.path.startsWith("/api/")) {
+        if (
+            req.method === "GET" &&
+            !req.path.startsWith("/api/") &&
+            !req.path.startsWith("/assets/") &&
+            !path.extname(req.path)
+        ) {
             return res.sendFile(path.join(frontendDist, "index.html"));
         }
         next();
