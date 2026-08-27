@@ -10,6 +10,7 @@ const authRoutes = require("./routes/authRoutes");
 const cryptoRoutes = require("./routes/cryptoRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const realtimeRoutes = require("./routes/realtimeRoutes");
+const forensicsRoutes = require("./routes/forensicsRoutes");
 const realtimeService = require("./services/realtimeService");
 const marketService = require("./services/marketService");
 const cacheService = require("./services/cacheService");
@@ -192,6 +193,7 @@ app.use("/api/wallet", walletRoutes);
 app.use("/api/crypto", cryptoRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/realtime", realtimeRoutes);
+app.use("/api/forensics", forensicsRoutes);
 
 // =============================================================================
 // Static Frontend Production Serving & SPA Fallback (Express 5 Compatible)

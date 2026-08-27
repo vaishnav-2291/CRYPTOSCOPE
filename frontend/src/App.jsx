@@ -17,6 +17,7 @@ import MarketPage from "./pages/MarketPage";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import PublicReport from "./pages/PublicReport";
+import ForensicsPage from "./pages/ForensicsPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -134,6 +135,24 @@ function App() {
               element={
                 <ProtectedRoute>
                   <History />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Forensic Intelligence Terminal (Protected) */}
+            <Route
+              path="/forensics"
+              element={
+                <ProtectedRoute>
+                  <ForensicsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/forensics/:address"
+              element={
+                <ProtectedRoute>
+                  <ForensicsPage />
                 </ProtectedRoute>
               }
             />
