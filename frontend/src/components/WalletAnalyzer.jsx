@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 const WalletAnalyzer = ({ initialAddress = "" }) => {
+  const toast = useToast();
   const [addressInput, setAddressInput] = useState(initialAddress || "");
   const [loading, setLoading] = useState(false);
   const [walletResult, setWalletResult] = useState(null);
@@ -79,9 +80,10 @@ const WalletAnalyzer = ({ initialAddress = "" }) => {
     try {
       await addToWatchlist(walletResult.address, walletResult.entityTag?.name || "Target Address");
       setWatchlistSuccess(true);
+      toast.success("Wallet added to Risk Watchlist");
       setTimeout(() => setWatchlistSuccess(false), 3000);
     } catch (err) {
-      alert(err.response?.data?.message || "Please sign in to add wallets to your watchlist.");
+      toast.error(err.response?.data?.message || "Please sign in to add wallets to your watchlist.");
     }
   };
 
@@ -405,6 +407,7 @@ const WalletAnalyzer = ({ initialAddress = "" }) => {
               ruleTriggers={walletResult.ruleTriggers}
               securityAssessment={walletResult.securityAssessment || walletResult.aiReport}
               methodology={walletResult.methodology}
+              transactions={walletResult.transactions || []}
             />
           )}
 

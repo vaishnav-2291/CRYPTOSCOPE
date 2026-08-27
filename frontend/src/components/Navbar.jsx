@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getMarketPrices, getWatchlist } from "../services/api";
+import { getMarketPrices, getWatchlist, getMempoolTelemetry } from "../services/api";
 import { formatUsd } from "../utils/constants";
 import {
   Search,
@@ -18,13 +18,15 @@ import {
   HardDrive,
   ShieldCheck,
   Radio,
+  Layers,
 } from "lucide-react";
 
-const Navbar = ({ onQuickScan }) => {
+const Navbar = ({ onQuickScan, onOpenCommand }) => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   const [marketData, setMarketData] = useState(null);
+  const [telemetryData, setTelemetryData] = useState({ recommendedFee: null, blockHeight: null });
   const [searchInput, setSearchInput] = useState("");
   const [watchlistCount, setWatchlistCount] = useState(0);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -33,12 +35,20 @@ const Navbar = ({ onQuickScan }) => {
   useEffect(() => {
     const fetchMarket = async () => {
       try {
-        const res = await getMarketPrices();
-        if (res?.data) {
-          setMarketData(res.data);
-          setMarketStatus(res.status || "LIVE");
+        const [mRes, tRes] = await Promise.all([
+          getMarketPrices().catch(() => null),
+          getMempoolTelemetry().catch(() => null),
+        ]);
+
+        if (mRes?.data) {
+          setMarketData(mRes.data);
+          setMarketStatus(mRes.status || "LIVE");
         } else {
           setMarketStatus("UNAVAILABLE");
+        }
+
+        if (tRes) {
+          setTelemetryData(tRes);
         }
       } catch {
         setMarketStatus("UNAVAILABLE");
@@ -82,7 +92,7 @@ const Navbar = ({ onQuickScan }) => {
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#080C14]/95 backdrop-blur-2xl border-b border-cyan-500/20 shadow-2xl">
       {/* Tier 1: Live Telemetry Stream Strip */}
       <div className="h-7 bg-slate-950/90 border-b border-cyan-500/15 flex items-center justify-between px-4 lg:px-8 text-[10px] font-mono text-slate-400">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto whitespace-nowrap">
           <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
             LIVE TELEMETRY
@@ -90,12 +100,18 @@ const Navbar = ({ onQuickScan }) => {
           <span className="hidden sm:inline-flex items-center gap-1 text-slate-300">
             <HardDrive className="w-3 h-3 text-cyan-400" /> Network: Bitcoin Mainnet
           </span>
+          <span className="inline-flex items-center gap-1 text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+            <Zap className="w-3 h-3 text-cyan-400" /> Fee: {telemetryData.recommendedFee ? `${telemetryData.recommendedFee} sat/vB` : "—"}
+          </span>
+          <span className="inline-flex items-center gap-1 text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
+            <Layers className="w-3 h-3 text-purple-400" /> Block: {telemetryData.blockHeight ? Number(telemetryData.blockHeight).toLocaleString() : "—"}
+          </span>
           <span className="hidden md:inline-flex items-center gap-1 text-slate-400">
-            <Cpu className="w-3 h-3 text-purple-400" /> Data Source: Mempool / Blockstream
+            <Cpu className="w-3 h-3 text-slate-500" /> Mempool / Blockstream Live
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-shrink-0">
           <span className="hidden sm:inline-flex items-center gap-1 text-emerald-400">
             <ShieldCheck className="w-3 h-3" /> Heuristic Engine: v2.0-ACTIVE
           </span>
@@ -156,17 +172,29 @@ const Navbar = ({ onQuickScan }) => {
 
         {/* Right: Quick Search + User Profile Menu */}
         <div className="flex items-center gap-3">
-          {/* Quick Scan Input */}
-          <form onSubmit={handleSearchSubmit} className="hidden md:flex relative w-56 lg:w-64">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Scan Bitcoin address..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs font-mono text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition"
-            />
-          </form>
+          {/* Quick Scan Input & Cmd+K Shortcut */}
+          <div className="hidden md:flex items-center relative w-60 lg:w-72">
+            <form onSubmit={handleSearchSubmit} className="w-full relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Scan address..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-8 pr-14 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs font-mono text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition"
+              />
+            </form>
+            {onOpenCommand && (
+              <button
+                type="button"
+                onClick={onOpenCommand}
+                className="absolute right-2 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 hover:text-cyan-300 bg-slate-800 border border-slate-700 hover:border-cyan-500/40 transition flex items-center gap-0.5"
+                title="Open Command Palette (Cmd+K / Ctrl+K)"
+              >
+                <span>⌘</span>K
+              </button>
+            )}
+          </div>
 
           {/* User Profile Pill / Login */}
           {isAuthenticated ? (

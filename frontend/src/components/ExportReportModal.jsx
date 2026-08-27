@@ -3,6 +3,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatBtc, formatUsd, truncateAddress } from "../utils/constants";
 import { Download, Share2, Copy, Check, FileText, X, Globe, Shield } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 
 const ExportReportModal = ({
   isOpen,
@@ -11,6 +12,7 @@ const ExportReportModal = ({
   riskData = {},
   scanId = "",
 }) => {
+  const toast = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
 
   if (!isOpen) return null;
@@ -123,9 +125,10 @@ const ExportReportModal = ({
       );
 
       doc.save(`CryptoScope_Report_${address.slice(0, 8)}.pdf`);
+      toast.success("Security Report exported successfully as PDF");
     } catch (err) {
       console.error("PDF generation failed:", err);
-      alert("Failed to export PDF: " + err.message);
+      toast.error("Failed to export PDF: " + err.message);
     }
   };
 

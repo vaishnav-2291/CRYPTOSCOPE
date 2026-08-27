@@ -16,12 +16,15 @@ import {
   Download,
   Eye,
   Tag,
+  Share2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
 import { forensicsApi } from "../services/forensicsApi";
+import { useToast } from "../context/ToastContext";
 
 export const CaseWorkspacePage = () => {
+  const toast = useToast();
   const [cases, setCases] = useState([]);
   const [activeCaseId, setActiveCaseId] = useState(null);
   const [activeDossier, setActiveDossier] = useState(null);
@@ -228,9 +231,22 @@ export const CaseWorkspacePage = () => {
       });
 
       doc.save(`case_dossier_${(c.title || "audit").replace(/\s+/g, "_").toLowerCase()}.pdf`);
+      toast.success("Case Dossier PDF downloaded successfully");
     } catch (err) {
       console.error("PDF export error:", err);
+      toast.error("Failed to export dossier PDF: " + err.message);
     }
+  };
+
+  const handleShareInvestigation = () => {
+    if (!activeDossier?.wallets || activeDossier.wallets.length === 0) {
+      toast.info("Add at least one target wallet to share this live investigation report.");
+      return;
+    }
+    const targetAddr = activeDossier.wallets[0].address;
+    const shareUrl = `${window.location.origin}/report/${targetAddr}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success(`Shareable report link copied! (Report generated: ${new Date().toLocaleTimeString()})`);
   };
 
   const priorityColors = {
@@ -315,9 +331,30 @@ export const CaseWorkspacePage = () => {
         {/* Active Case Live Dossier */}
         <div className="lg:col-span-8 space-y-6">
           {!activeDossier ? (
-            <div className="cyber-card rounded-2xl p-12 border border-slate-800 bg-slate-900/40 text-center text-slate-400 text-sm">
-              <FolderOpen className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-              Select a case from the list or create a new one to view its live multi-wallet dossier.
+            <div className="cyber-card rounded-2xl p-12 border border-slate-800 bg-slate-900/40 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto">
+                <Briefcase className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-white">No Investigation Case Selected</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Group multi-wallet targets into structured compliance cases with live on-chain re-hydration, aggregated holdings, and timeline tracking.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-cyan-500/20 inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Create Investigation Case
+                </button>
+                <a
+                  href="/scan"
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition border border-slate-700 inline-flex items-center gap-1.5"
+                >
+                  <Search className="w-3.5 h-3.5" /> Start Wallet Scan
+                </a>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
@@ -334,7 +371,14 @@ export const CaseWorkspacePage = () => {
                     <p className="text-xs text-slate-400 mt-1">{activeDossier.caseInfo?.description}</p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={handleShareInvestigation}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                      title="Generate live public report share link"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-cyan-400" /> Share Investigation
+                    </button>
                     <button
                       onClick={() => fetchCaseDossier(activeCaseId)}
                       className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all"

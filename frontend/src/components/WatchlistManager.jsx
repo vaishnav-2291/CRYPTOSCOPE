@@ -190,10 +190,33 @@ const WatchlistManager = ({ onSelectAddress }) => {
         </div>
       </form>
 
-      {/* Watchlist Table */}
+      {/* Watchlist Table / Empty State */}
       {watchlist.length === 0 ? (
-        <div className="py-8 text-center text-slate-400 text-xs">
-          No wallets in your watchlist yet
+        <div className="py-12 px-6 rounded-2xl bg-slate-950/40 border border-slate-800 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto">
+            <Eye className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-white">No Addresses Being Watched Yet</h4>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Pin high-risk or exchange wallets to monitor automated score changes, multi-hop deviations, and real-time threat alerts.
+            </p>
+          </div>
+          {onSelectAddress ? (
+            <button
+              onClick={() => onSelectAddress("34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo")}
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-cyan-500/20 inline-flex items-center gap-1.5"
+            >
+              <Search className="w-3.5 h-3.5" /> Start Your First Investigation
+            </button>
+          ) : (
+            <a
+              href="/scan"
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-cyan-500/20 inline-flex items-center gap-1.5"
+            >
+              <Search className="w-3.5 h-3.5" /> Start Your First Investigation
+            </a>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/5">

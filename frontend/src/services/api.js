@@ -142,6 +142,21 @@ export const getMarketPrices = async () => {
   return res.data;
 };
 
+export const getMempoolTelemetry = async () => {
+  try {
+    const [feesRes, tipRes] = await Promise.all([
+      fetch("https://mempool.space/api/v1/fees/recommended").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch("https://mempool.space/api/blocks/tip/height").then((r) => (r.ok ? r.text() : null)).catch(() => null),
+    ]);
+    return {
+      recommendedFee: feesRes?.fastestFee || feesRes?.halfHourFee || null,
+      blockHeight: tipRes ? parseInt(tipRes.trim(), 10) : null,
+    };
+  } catch {
+    return { recommendedFee: null, blockHeight: null };
+  }
+};
+
 export const getCryptoNews = async () => {
   const res = await api.get("/crypto/news");
   return res.data;

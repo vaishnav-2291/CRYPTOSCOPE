@@ -10,9 +10,11 @@ import TransactionGraph from "../components/TransactionGraph";
 import { Shield, Share2, Download, Copy, Check, ExternalLink, ArrowLeft } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useToast } from "../context/ToastContext";
 
 const PublicReport = () => {
   const { id } = useParams();
+  const toast = useToast();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -76,8 +78,9 @@ const PublicReport = () => {
       });
 
       doc.save(`CryptoScope_PublicReport_${report.address.slice(0, 8)}.pdf`);
+      toast.success("Public report exported successfully as PDF");
     } catch (err) {
-      alert("PDF export failed: " + err.message);
+      toast.error("PDF export failed: " + err.message);
     }
   };
 
@@ -139,9 +142,9 @@ const PublicReport = () => {
         </div>
 
         {/* Public Banner */}
-        <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-between text-xs text-cyan-300 font-mono">
-          <span>🌐 Public Verified Security Audit • Read-Only View</span>
-          <span>Scanned: {new Date(report.createdAt || Date.now()).toLocaleDateString()}</span>
+        <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-cyan-300 font-mono">
+          <span>🌐 Public Verified Security Audit • Read-Only Live View</span>
+          <span className="text-slate-300">Report generated: {new Date(report.createdAt || Date.now()).toLocaleString()}</span>
         </div>
 
         {/* Target Header Card */}
@@ -187,6 +190,7 @@ const PublicReport = () => {
           riskLevel={report.riskLevel}
           ruleTriggers={report.ruleTriggers || []}
           securityAssessment={report.securityAssessment || report.aiReport}
+          transactions={report.transactions || []}
         />
 
         {/* Fund Flow Graph */}

@@ -1,9 +1,96 @@
-import React, { useState } from "react";
-import { Layers, ZoomIn, ZoomOut, RotateCcw, ExternalLink, ShieldAlert, Sparkles, ArrowRight } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Layers,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  ExternalLink,
+  ShieldAlert,
+  Sparkles,
+  ArrowRight,
+  Radio,
+  RefreshCw,
+  Zap,
+} from "lucide-react";
+import { forensicsApi } from "../../services/forensicsApi";
 
-export const LiveFundFlowGraph = ({ data, loading, error, onSelectAddress }) => {
+export const LiveFundFlowGraph = ({ data, loading, error, onSelectAddress, targetAddress }) => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
+  const [liveNodes, setLiveNodes] = useState([]);
+  const [liveEdges, setLiveEdges] = useState([]);
+  const [newlyAddedNodeIds, setNewlyAddedNodeIds] = useState(new Set());
+  const [lastPollTime, setLastPollTime] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+
+  // Sync initial data from props
+  useEffect(() => {
+    if (data?.nodes) {
+      setLiveNodes(data.nodes);
+      setLiveEdges(data.edges || []);
+      setNewlyAddedNodeIds(new Set());
+    }
+  }, [data]);
+
+  const effectiveAddress =
+    targetAddress ||
+    data?.targetAddress ||
+    (data?.nodes || []).find((n) => n.isTarget)?.fullAddress ||
+    (data?.nodes || [])[0]?.fullAddress;
+
+  // Live polling effect every 15s when isLiveStreaming is active
+  useEffect(() => {
+    let interval = null;
+
+    if (isLiveStreaming && effectiveAddress) {
+      const pollLiveFlows = async () => {
+        try {
+          setIsPolling(true);
+          const freshData = await forensicsApi.getFundFlowGraph(effectiveAddress, 2, 30);
+          setLastPollTime(new Date().toLocaleTimeString());
+
+          if (freshData?.nodes && Array.isArray(freshData.nodes)) {
+            setLiveNodes((prevNodes) => {
+              const existingIds = new Set(prevNodes.map((n) => n.id));
+              const newNodes = freshData.nodes.filter((n) => !existingIds.has(n.id));
+
+              if (newNodes.length > 0) {
+                const newIds = new Set(newNodes.map((n) => n.id));
+                setNewlyAddedNodeIds(newIds);
+                // Clear the pulse highlight after 5 seconds
+                setTimeout(() => {
+                  setNewlyAddedNodeIds(new Set());
+                }, 5000);
+                return [...prevNodes, ...newNodes];
+              }
+              return prevNodes;
+            });
+
+            if (freshData.edges && Array.isArray(freshData.edges)) {
+              setLiveEdges((prevEdges) => {
+                const edgeKeys = new Set(prevEdges.map((e) => `${e.source}->${e.target}`));
+                const newEdges = freshData.edges.filter((e) => !edgeKeys.has(`${e.source}->${e.target}`));
+                return [...prevEdges, ...newEdges];
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Live fund flow polling error:", err);
+        } finally {
+          setIsPolling(false);
+        }
+      };
+
+      // Run initial check and then set 15-second interval
+      pollLiveFlows();
+      interval = setInterval(pollLiveFlows, 15000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isLiveStreaming, effectiveAddress]);
 
   if (loading) {
     return (
@@ -33,8 +120,8 @@ export const LiveFundFlowGraph = ({ data, loading, error, onSelectAddress }) => 
     );
   }
 
-  const nodes = data.nodes || [];
-  const edges = data.edges || [];
+  const nodes = liveNodes.length > 0 ? liveNodes : data.nodes || [];
+  const edges = liveEdges.length > 0 ? liveEdges : data.edges || [];
   const summary = data.summary || {};
 
   return (
@@ -54,32 +141,68 @@ export const LiveFundFlowGraph = ({ data, loading, error, onSelectAddress }) => 
           </p>
         </div>
 
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-1.5 self-end sm:self-auto bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+        {/* Action Controls & Live Stream Toggle */}
+        <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+          {/* Live Stream Toggle */}
           <button
-            onClick={() => setZoom((z) => Math.max(0.7, +(z - 0.15).toFixed(2)))}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="Zoom Out"
+            onClick={() => setIsLiveStreaming((prev) => !prev)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center gap-1.5 shadow-sm ${
+              isLiveStreaming
+                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-emerald-500/20"
+                : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white"
+            }`}
+            title="Poll live mempool every 15s for incoming on-chain fund flows"
           >
-            <ZoomOut className="w-4 h-4" />
+            <Radio className={`w-3.5 h-3.5 ${isLiveStreaming ? "animate-pulse text-emerald-400" : ""}`} />
+            <span>Live Stream</span>
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isLiveStreaming ? "bg-emerald-400 animate-ping" : "bg-slate-600"
+              }`}
+            />
           </button>
-          <span className="text-[11px] font-mono px-2 text-slate-300">{Math.round(zoom * 100)}%</span>
-          <button
-            onClick={() => setZoom((z) => Math.min(1.5, +(z + 0.15).toFixed(2)))}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setZoom(1)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors ml-1"
-            title="Reset Zoom"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setZoom((z) => Math.max(0.7, +(z - 0.15).toFixed(2)))}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-mono px-1.5 text-slate-300">{Math.round(zoom * 100)}%</span>
+            <button
+              onClick={() => setZoom((z) => Math.min(1.5, +(z + 0.15).toFixed(2)))}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setZoom(1)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
+              title="Reset Zoom"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Live Stream Telemetry Banner (When Enabled) */}
+      {isLiveStreaming && (
+        <div className="mb-3 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-[11px] font-mono text-emerald-300 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span>Live mempool stream active • Polling every 15s</span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-400">
+            {isPolling && <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" />}
+            <span>Last check: {lastPollTime || "Initial polling..."}</span>
+          </div>
+        </div>
+      )}
 
       {/* Interactive Visual Graph Canvas */}
       <div className="relative w-full h-[380px] bg-slate-950/90 rounded-xl border border-slate-800/80 overflow-hidden flex items-center justify-center p-4">
@@ -92,18 +215,21 @@ export const LiveFundFlowGraph = ({ data, loading, error, onSelectAddress }) => 
         >
           {/* Render Graph Nodes */}
           <div className="flex flex-wrap items-center justify-center gap-4 max-w-4xl p-2">
-            {nodes.slice(0, 18).map((node) => {
+            {nodes.slice(0, 24).map((node) => {
               const isTarget = node.isTarget;
               const isTx = node.type === "transaction";
               const isMixer = node.type === "mixer";
               const isSanctioned = node.type === "sanctioned";
+              const isNewlyAdded = newlyAddedNodeIds.has(node.id);
 
               return (
                 <button
                   key={node.id}
                   onClick={() => setSelectedNode(node)}
-                  className={`relative group px-3.5 py-2.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between ${
-                    selectedNode?.id === node.id
+                  className={`relative group px-3.5 py-2.5 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between ${
+                    isNewlyAdded
+                      ? "ring-2 ring-emerald-400 animate-pulse shadow-[0_0_25px_rgba(16,185,129,0.7)] scale-110"
+                      : selectedNode?.id === node.id
                       ? "ring-2 ring-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
                       : "hover:scale-105"
                   } ${
@@ -121,7 +247,15 @@ export const LiveFundFlowGraph = ({ data, loading, error, onSelectAddress }) => 
                   <div className="flex items-center gap-1.5">
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        isTarget ? "bg-cyan-400 animate-ping" : isSanctioned ? "bg-red-500" : isMixer ? "bg-purple-500" : "bg-slate-500"
+                        isNewlyAdded
+                          ? "bg-emerald-400 animate-ping"
+                          : isTarget
+                          ? "bg-cyan-400 animate-ping"
+                          : isSanctioned
+                          ? "bg-red-500"
+                          : isMixer
+                          ? "bg-purple-500"
+                          : "bg-slate-500"
                       }`}
                     />
                     <span className="text-xs font-bold font-mono truncate max-w-[130px]">

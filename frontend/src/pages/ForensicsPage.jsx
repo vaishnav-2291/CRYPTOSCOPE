@@ -497,6 +497,7 @@ export const ForensicsPage = () => {
                 data={graphData}
                 loading={loading}
                 error={error}
+                targetAddress={activeAddress}
                 onSelectAddress={(addr) => {
                   setInputAddress(addr);
                   setActiveAddress(addr);

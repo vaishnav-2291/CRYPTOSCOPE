@@ -156,8 +156,24 @@ function History() {
               Loading persistent scan history from MongoDB...
             </div>
           ) : filteredHistory.length === 0 ? (
-            <div className="cyber-card rounded-2xl p-12 text-center text-slate-400 text-xs font-mono border border-white/5">
-              No scans performed yet
+            <div className="cyber-card rounded-2xl p-12 text-center border border-slate-800 bg-slate-950/40 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto">
+                <Search className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white">No Wallet Scans Performed Yet</h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Run deterministic heuristic audits on any Bitcoin address to log risk breakdowns, balances, and multi-hop provenance into your persistent audit trail.
+                </p>
+              </div>
+              <div className="pt-1">
+                <button
+                  onClick={() => navigate("/scan")}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-cyan-500/20 inline-flex items-center gap-1.5"
+                >
+                  <Search className="w-3.5 h-3.5" /> Start Your First Investigation
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
@@ -225,8 +241,16 @@ function History() {
               Loading persistent user activities from MongoDB...
             </div>
           ) : filteredActivities.length === 0 ? (
-            <div className="cyber-card rounded-2xl p-12 text-center text-slate-400 text-xs font-mono border border-white/5">
-              No user activities recorded in MongoDB.
+            <div className="cyber-card rounded-2xl p-12 text-center border border-slate-800 bg-slate-950/40 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto">
+                <Activity className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white">No Activity Logs Found</h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Audits, password updates, watchlist additions, and investigation cases will automatically record immutable event logs here.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-3 font-mono text-xs">

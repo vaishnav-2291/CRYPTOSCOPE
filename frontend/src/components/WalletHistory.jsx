@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-
+import { useToast } from "../context/ToastContext";
 
 function WalletHistory() {
-
-
+    const toast = useToast();
     const [history, setHistory] = useState([]);
 
     const [search, setSearch] = useState("");
@@ -94,14 +93,8 @@ function WalletHistory() {
 
 
     const copyAddress = (address)=>{
-
-
         navigator.clipboard.writeText(address);
-
-
-        alert("Wallet Address Copied!");
-
-
+        toast.success("Wallet Address Copied!");
     };
 
 
