@@ -261,11 +261,11 @@ test("Admin Authentication & Authorization Security Test Suite", async (t) => {
             body: JSON.stringify({ email: adminEmail }),
         });
 
-        // Step 2: Grab token from DB
+        // Step 2: Grab OTP from DB
         const updatedAdmin = await User.findOne({ email: adminEmail });
-        assert.ok(updatedAdmin.resetPasswordToken);
+        assert.ok(updatedAdmin.resetPasswordOtp);
 
-        // Generate raw token match
+        // Generate raw token match for reset authorization
         const rawToken = "custom_test_admin_reset_token_2026_xyz";
         const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
         updatedAdmin.resetPasswordToken = hashedToken;

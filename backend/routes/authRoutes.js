@@ -7,6 +7,7 @@ const {
     refreshToken,
     getCurrentUser,
     forgotPassword,
+    verifyResetOtp,
     resetPassword,
     updateProfile,
     googleAuthRedirect,
@@ -30,8 +31,9 @@ router.get("/google/callback", googleAuthCallback);
 router.get("/me", authMiddleware, getCurrentUser);
 router.put("/profile", authMiddleware, updateProfile);
 
-// Password Recovery
+// Password Recovery via Email OTP
 router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/verify-reset-otp", authLimiter, verifyResetOtp);
 router.post("/reset-password", authLimiter, resetPassword);
 
 module.exports = router;

@@ -20,6 +20,12 @@ const Profile = () => {
   const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
+    if (user?.name) {
+      setName(user.name);
+    }
+  }, [user]);
+
+  useEffect(() => {
     getScanHistory().then((res) => {
       if (res?.history) setHistory(res.history);
     }).catch(() => {});
@@ -29,6 +35,8 @@ const Profile = () => {
     }).catch(() => {});
   }, []);
 
+  const isGoogleUser = user?.authProvider === "google";
+
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
@@ -36,16 +44,53 @@ const Profile = () => {
       setErrorMsg(null);
       setSuccessMsg(null);
 
-      const payload = { name };
-      if (newPassword) {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        setErrorMsg("Display name cannot be empty.");
+        setSaving(false);
+        return;
+      }
+
+      const payload = { name: trimmedName };
+
+      // If user is attempting to change password
+      if (newPassword || currentPassword) {
+        if (isGoogleUser) {
+          setErrorMsg("This account is authenticated through Google and does not have a local password to change.");
+          setSaving(false);
+          return;
+        }
+        if (!currentPassword) {
+          setErrorMsg("Current password is required to change your password.");
+          setSaving(false);
+          return;
+        }
+        if (!newPassword) {
+          setErrorMsg("Please enter a new password.");
+          setSaving(false);
+          return;
+        }
+        if (newPassword.length < 6) {
+          setErrorMsg("New password must be at least 6 characters long.");
+          setSaving(false);
+          return;
+        }
+        if (currentPassword === newPassword) {
+          setErrorMsg("New password cannot be the same as the current password.");
+          setSaving(false);
+          return;
+        }
+
         payload.currentPassword = currentPassword;
         payload.newPassword = newPassword;
       }
 
       const res = await api.put("/auth/profile", payload);
       if (res.data?.success) {
-        setSuccessMsg("Profile updated successfully.");
-        updateUserData(res.data.user);
+        setSuccessMsg(res.data.message || "Profile updated successfully.");
+        if (res.data.user) {
+          updateUserData(res.data.user);
+        }
         setCurrentPassword("");
         setNewPassword("");
       }
@@ -76,6 +121,11 @@ const Profile = () => {
               >
                 {user?.role || "User"}
               </span>
+              {isGoogleUser && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Google Auth
+                </span>
+              )}
             </div>
             <div className="text-xs font-mono text-slate-400">{user?.email}</div>
           </div>
@@ -138,28 +188,37 @@ const Profile = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-slate-400 font-medium">Current Password (if changing)</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white focus:border-cyan-400 focus:outline-none"
-              />
+          {isGoogleUser ? (
+            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-white/10 text-slate-400 text-xs flex items-center gap-2.5">
+              <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                This account is authenticated through Google Sign-In. Password security is managed directly by Google.
+              </span>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-slate-400 font-medium">New Password</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Min 6 characters"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white focus:border-cyan-400 focus:outline-none"
-              />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-slate-400 font-medium">Current Password (if changing)</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-slate-400 font-medium">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex justify-end pt-2">
             <button

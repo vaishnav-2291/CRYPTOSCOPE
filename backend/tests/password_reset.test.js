@@ -67,8 +67,8 @@ test("Password Reset Security & MongoDB Persistence Flow", async () => {
         // Step 2: Verify MongoDB state after forgot password
         // -------------------------------------------------------------
         const updatedUser = await User.findById(user._id);
-        assert.ok(updatedUser.resetPasswordToken, "MongoDB must store the hashed reset token");
-        assert.ok(updatedUser.resetPasswordExpires > new Date(), "Token expiry must be in the future");
+        assert.ok(updatedUser.resetPasswordOtp, "MongoDB must store the hashed OTP");
+        assert.ok(updatedUser.resetPasswordOtpExpires > new Date(), "OTP expiry must be in the future");
 
         // Verify activity logged
         const reqActivity = await UserActivity.findOne({

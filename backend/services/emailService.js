@@ -63,9 +63,9 @@ async function verifyEmailConfig() {
 }
 
 /**
- * Generate Responsive HTML Email Template for CRYPTOSCOPE AI Password Reset
+ * Generate Responsive HTML Email Template for CRYPTOSCOPE AI Password Reset OTP
  */
-function generateResetHtml({ name, resetUrl }) {
+function generateOtpEmailHtml({ name, otp }) {
     const displayName = name ? name.trim() : "Analyst";
 
     return `<!DOCTYPE html>
@@ -73,7 +73,7 @@ function generateResetHtml({ name, resetUrl }) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRYPTOSCOPE AI — Password Reset</title>
+  <title>CRYPTOSCOPE AI — Password Reset OTP</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #050811; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #050811; padding: 40px 15px;">
@@ -94,7 +94,7 @@ function generateResetHtml({ name, resetUrl }) {
                     </div>
                   </td>
                   <td align="right">
-                    <span style="font-size: 11px; font-family: monospace; color: #94a3b8; letter-spacing: 1px;">SECURITY ALERT</span>
+                    <span style="font-size: 11px; font-family: monospace; color: #94a3b8; letter-spacing: 1px;">VERIFICATION OTP</span>
                   </td>
                 </tr>
               </table>
@@ -105,7 +105,7 @@ function generateResetHtml({ name, resetUrl }) {
           <tr>
             <td style="padding: 40px;">
               <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                Password Reset Request
+                Password Reset Verification
               </h1>
               
               <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
@@ -113,16 +113,16 @@ function generateResetHtml({ name, resetUrl }) {
               </p>
               
               <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
-                We received a request to reset the password for your CRYPTOSCOPE AI analyst account. To set a new password, click the button below:
+                We received a request to reset your password for CRYPTOSCOPE AI. Use the 6-digit verification code below to authorize your password reset:
               </p>
 
-              <!-- Action Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 30px 0;">
+              <!-- OTP Code Display Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 25px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #00f2fe 0%, #0284c7 100%); color: #050811; text-decoration: none; font-size: 14px; font-weight: 800; border-radius: 10px; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.35); text-transform: uppercase; letter-spacing: 0.5px;">
-                      Reset Your Password &rarr;
-                    </a>
+                    <div style="display: inline-block; padding: 18px 36px; background: rgba(6, 182, 212, 0.1); border: 2px dashed #00f2fe; border-radius: 12px; letter-spacing: 10px; font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 900; color: #00f2fe; text-align: center; box-shadow: 0 0 25px rgba(6, 182, 212, 0.2);">
+                      ${otp}
+                    </div>
                   </td>
                 </tr>
               </table>
@@ -132,21 +132,13 @@ function generateResetHtml({ name, resetUrl }) {
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                   <tr>
                     <td style="font-size: 12px; line-height: 1.6; color: #94a3b8;">
-                      <strong style="color: #00f2fe;">⚠️ Critical Security Notices:</strong><br>
-                      &bull; This single-use link will expire automatically in <strong>15 minutes</strong>.<br>
-                      &bull; If you did not request this password reset, no action is required; your account credentials remain secure.<br>
-                      &bull; Never forward or share this link with anyone.
+                      <strong style="color: #00f2fe;">⚠️ Security Guidelines:</strong><br>
+                      &bull; This OTP is valid for exactly <strong>10 minutes</strong>.<br>
+                      &bull; If you did not request this password reset, please ignore this email; your account credentials remain safe.<br>
+                      &bull; Never share this one-time code with anyone, including CRYPTOSCOPE staff.
                     </td>
                   </tr>
                 </table>
-              </div>
-
-              <!-- Fallback Direct URL -->
-              <p style="margin: 25px 0 8px 0; font-size: 12px; color: #64748b;">
-                If the button above does not work, copy and paste the following URL into your web browser:
-              </p>
-              <div style="background-color: #050811; border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 11px; word-break: break-all; color: #38bdf8;">
-                <a href="${resetUrl}" style="color: #38bdf8; text-decoration: none;">${resetUrl}</a>
               </div>
             </td>
           </tr>
@@ -171,24 +163,24 @@ function generateResetHtml({ name, resetUrl }) {
 }
 
 /**
- * Generate Plaintext Email Fallback for CRYPTOSCOPE AI Password Reset
+ * Generate Plaintext Email Fallback for CRYPTOSCOPE AI Password Reset OTP
  */
-function generateResetText({ name, resetUrl }) {
+function generateOtpEmailText({ name, otp }) {
     const displayName = name ? name.trim() : "Analyst";
 
-    return `CRYPTOSCOPE AI — Password Reset Request
+    return `CRYPTOSCOPE AI — Password Reset OTP
 
 Hello ${displayName},
 
 We received a request to reset the password for your CRYPTOSCOPE AI account.
 
-To choose a new password, open the following link in your browser:
-${resetUrl}
+Your 6-digit Verification OTP:
+${otp}
 
 SECURITY NOTICES:
-- This single-use link expires in 15 minutes.
+- This OTP expires in exactly 10 minutes.
 - If you did not request this password reset, please ignore this email; your account remains secure.
-- Do not share this link with anyone.
+- Never share this one-time passcode with anyone.
 
 --
 CRYPTOSCOPE AI Security Team
@@ -196,11 +188,11 @@ Blockchain Risk Intelligence & Security Telemetry`;
 }
 
 /**
- * Transmit Password Reset Email via Configured Nodemailer SMTP Transport
+ * Transmit Password Reset OTP Email via Configured Nodemailer SMTP Transport
  */
-async function sendPasswordResetEmail({ to, name, resetUrl }) {
+async function sendPasswordResetOtpEmail({ to, name, otp }) {
     if (!to) {
-        console.warn("[EmailService] No recipient address provided for password reset email.");
+        console.warn("[EmailService] No recipient address provided for password reset OTP email.");
         return { success: false, reason: "MISSING_RECIPIENT" };
     }
 
@@ -216,13 +208,13 @@ async function sendPasswordResetEmail({ to, name, resetUrl }) {
         const mailOptions = {
             from: fromAddress,
             to,
-            subject: "CRYPTOSCOPE AI — Password Reset",
-            text: generateResetText({ name, resetUrl }),
-            html: generateResetHtml({ name, resetUrl }),
+            subject: "CRYPTOSCOPE AI — Password Reset OTP",
+            text: generateOtpEmailText({ name, otp }),
+            html: generateOtpEmailHtml({ name, otp }),
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`[EmailService] Password reset email successfully dispatched to recipient.`);
+        console.log(`[EmailService] Password reset OTP email successfully dispatched to recipient.`);
 
         return {
             success: true,
@@ -240,9 +232,9 @@ async function sendPasswordResetEmail({ to, name, resetUrl }) {
 }
 
 module.exports = {
-    sendPasswordResetEmail,
+    sendPasswordResetOtpEmail,
     verifyEmailConfig,
     isEmailConfigured,
-    generateResetHtml,
-    generateResetText,
+    generateOtpEmailHtml,
+    generateOtpEmailText,
 };

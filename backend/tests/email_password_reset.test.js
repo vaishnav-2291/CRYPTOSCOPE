@@ -54,6 +54,7 @@ describe("CRYPTOSCOPE Real Email & Password Reset Security Suite", () => {
             await new Promise((resolve) => server.close(resolve));
         }
         await mongoose.disconnect();
+        setTimeout(() => process.exit(0), 500);
     });
 
     // 1. Verify Email Service Configuration & Safety Check
@@ -65,31 +66,31 @@ describe("CRYPTOSCOPE Real Email & Password Reset Security Suite", () => {
     });
 
     // 2. Email HTML and Text Template Generation
-    test("2. Branded HTML template contains security notices, button, and no raw token leaks", () => {
-        const fakeUrl = "http://localhost:3000/reset-password?token=abcdef123456";
-        const html = emailService.generateResetHtml({ name: "Alice", resetUrl: fakeUrl });
-        const text = emailService.generateResetText({ name: "Alice", resetUrl: fakeUrl });
+    test("2. Branded HTML template contains security notices, 6-digit OTP, and no credential leaks", () => {
+        const fakeOtp = "849201";
+        const html = emailService.generateOtpEmailHtml({ name: "Alice", otp: fakeOtp });
+        const text = emailService.generateOtpEmailText({ name: "Alice", otp: fakeOtp });
 
         assert.ok(html.includes("CRYPTOSCOPE AI"));
-        assert.ok(html.includes("Password Reset Request"));
-        assert.ok(html.includes("15 minutes"));
-        assert.ok(html.includes(fakeUrl));
+        assert.ok(html.includes("Password Reset Verification"));
+        assert.ok(html.includes("10 minutes"));
+        assert.ok(html.includes(fakeOtp));
         assert.ok(text.includes("CRYPTOSCOPE AI"));
-        assert.ok(text.includes("15 minutes"));
-        assert.ok(text.includes(fakeUrl));
+        assert.ok(text.includes("10 minutes"));
+        assert.ok(text.includes(fakeOtp));
     });
 
     // 3. Email Service Transmission Error Resilience
-    test("3. sendPasswordResetEmail handles missing recipients or offline SMTP gracefully", async () => {
-        const resultMissing = await emailService.sendPasswordResetEmail({ to: "", name: "Test", resetUrl: "http://localhost:3000" });
+    test("3. sendPasswordResetOtpEmail handles missing recipients or offline SMTP gracefully", async () => {
+        const resultMissing = await emailService.sendPasswordResetOtpEmail({ to: "", name: "Test", otp: "123456" });
         assert.strictEqual(resultMissing.success, false);
         assert.strictEqual(resultMissing.reason, "MISSING_RECIPIENT");
 
         // Calling with test email should return a structured result without unhandled exception
-        const resultValid = await emailService.sendPasswordResetEmail({
+        const resultValid = await emailService.sendPasswordResetOtpEmail({
             to: "test_recipient@cryptoscope.ai",
             name: "Test",
-            resetUrl: "http://localhost:3000/reset-password?token=test12345"
+            otp: "123456"
         });
         assert.ok(typeof resultValid.success === "boolean");
     });
@@ -111,12 +112,12 @@ describe("CRYPTOSCOPE Real Email & Password Reset Security Suite", () => {
         assert.strictEqual(data.resetUrl, undefined);
     });
 
-    // 5. Verify Token Hash and Expiry Persisted in MongoDB
-    test("5. MongoDB User document contains SHA-256 hashed token and 15m expiration", async () => {
+    // 5. Verify OTP Hash and Expiry Persisted in MongoDB
+    test("5. MongoDB User document contains SHA-256 hashed OTP and 10m expiration", async () => {
         const updatedUser = await User.findById(testUser._id);
-        assert.ok(updatedUser.resetPasswordToken, "Hashed token must exist in MongoDB");
-        assert.strictEqual(updatedUser.resetPasswordToken.length, 64, "Token in MongoDB must be 64-char SHA-256 hex hash");
-        assert.ok(updatedUser.resetPasswordExpires > Date.now(), "Token expiry must be in the future");
+        assert.ok(updatedUser.resetPasswordOtp, "Hashed OTP must exist in MongoDB");
+        assert.strictEqual(updatedUser.resetPasswordOtp.length, 64, "OTP in MongoDB must be 64-char SHA-256 hex hash");
+        assert.ok(updatedUser.resetPasswordOtpExpires > Date.now(), "OTP expiry must be in the future");
     });
 
     // 6. Forgot Password with Non-Existent Email (Enumeration Protection)

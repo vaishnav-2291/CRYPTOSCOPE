@@ -102,7 +102,13 @@ exports.register = async (req, res) => {
             token: accessToken,
             accessToken,
             refreshToken: rawRefreshToken,
-            user: { id: user._id, name: user.name, email: user.email, role: user.role },
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                authProvider: user.authProvider || "local",
+            },
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message || "Registration failed." });
@@ -197,6 +203,7 @@ exports.login = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                authProvider: user.authProvider || "local",
                 watchlistCount: user.watchlist?.length || 0,
             },
         });
@@ -503,7 +510,7 @@ exports.googleAuthCallback = async (req, res) => {
 };
 
 // =============================================================================
-// FORGOT & RESET PASSWORD (Persisted in MongoDB & Single-Use Hashed Tokens)
+// FORGOT & RESET PASSWORD VIA SECURE EMAIL OTP (Persisted & Hashed in MongoDB)
 // =============================================================================
 exports.forgotPassword = async (req, res) => {
     if (!isDbConnected()) {
@@ -512,7 +519,7 @@ exports.forgotPassword = async (req, res) => {
 
     try {
         const { email } = req.body;
-        if (!email) {
+        if (!email || typeof email !== "string" || !email.trim()) {
             return res.status(400).json({ success: false, message: "Email is required." });
         }
 
@@ -520,11 +527,23 @@ exports.forgotPassword = async (req, res) => {
         const user = await User.findOne({ email: normalizedEmail });
 
         if (user) {
-            const rawToken = crypto.randomBytes(32).toString("hex");
-            const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+            // If user is Google-only without local password, return generic response without generating local reset OTP
+            if (!user.password && user.authProvider === "google") {
+                return res.json({
+                    success: true,
+                    message: "If that email address is registered, a password reset OTP has been sent to your email.",
+                });
+            }
 
-            user.resetPasswordToken = hashedToken;
-            user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+            // Cryptographically secure 6-digit numeric OTP (never Math.random)
+            const rawOtp = crypto.randomInt(100000, 1000000).toString();
+            const hashedOtp = crypto.createHash("sha256").update(rawOtp).digest("hex");
+
+            user.resetPasswordOtp = hashedOtp;
+            user.resetPasswordOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+            user.resetPasswordOtpAttempts = 0;
+            user.resetPasswordToken = null;
+            user.resetPasswordExpires = null;
             await user.save();
 
             await logActivity({
@@ -537,29 +556,128 @@ exports.forgotPassword = async (req, res) => {
                 req,
             });
 
-            // Dispatch real password reset email via Nodemailer SMTP service
-            const clientOrigin = req.headers.referer
-                ? new URL(req.headers.referer).origin
-                : (process.env.FRONTEND_URL || "http://localhost:3000");
-            const resetUrl = `${clientOrigin}/reset-password?token=${rawToken}`;
-
-            await emailService.sendPasswordResetEmail({
+            // Dispatch 6-digit OTP email via Nodemailer SMTP service
+            await emailService.sendPasswordResetOtpEmail({
                 to: user.email,
                 name: user.name,
-                resetUrl,
+                otp: rawOtp,
             });
         }
 
-        // Generic response prevents account enumeration attack and never exposes raw token
-        res.json({
+        // Generic response prevents account enumeration attack and never exposes raw OTP
+        return res.json({
             success: true,
-            message: "If that email address is registered, password reset instructions have been sent to your inbox. Please check your email.",
+            message: "If that email address is registered, a password reset OTP has been sent to your email.",
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
+/**
+ * Verify 6-Digit Email OTP and Issue Single-Use Reset Authorization Token
+ */
+exports.verifyResetOtp = async (req, res) => {
+    if (!isDbConnected()) {
+        return res.status(503).json({ success: false, message: "Database unavailable." });
+    }
+
+    try {
+        const { email, otp } = req.body;
+        if (!email || !otp) {
+            return res.status(400).json({ success: false, message: "Email and 6-digit OTP are required." });
+        }
+
+        const cleanOtp = String(otp).trim();
+        if (!/^\d{6}$/.test(cleanOtp)) {
+            return res.status(400).json({ success: false, message: "OTP must be exactly 6 digits." });
+        }
+
+        const normalizedEmail = String(email).toLowerCase().trim();
+        const user = await User.findOne({ email: normalizedEmail });
+
+        if (!user || !user.resetPasswordOtp || !user.resetPasswordOtpExpires) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired OTP. Please request a new code.",
+            });
+        }
+
+        // Expiry check (10 minutes)
+        if (user.resetPasswordOtpExpires < Date.now()) {
+            user.resetPasswordOtp = null;
+            user.resetPasswordOtpExpires = null;
+            user.resetPasswordOtpAttempts = 0;
+            await user.save();
+            return res.status(400).json({
+                success: false,
+                message: "OTP has expired. Please request a new code.",
+            });
+        }
+
+        // Check max attempts (limit 5)
+        if ((user.resetPasswordOtpAttempts || 0) >= 5) {
+            user.resetPasswordOtp = null;
+            user.resetPasswordOtpExpires = null;
+            user.resetPasswordOtpAttempts = 0;
+            await user.save();
+            return res.status(400).json({
+                success: false,
+                message: "Too many incorrect OTP attempts. This OTP has been invalidated. Please request a new code.",
+            });
+        }
+
+        // Compare SHA-256 hash
+        const hashedInputOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+        if (hashedInputOtp !== user.resetPasswordOtp) {
+            user.resetPasswordOtpAttempts = (user.resetPasswordOtpAttempts || 0) + 1;
+            const attemptsLeft = Math.max(0, 5 - user.resetPasswordOtpAttempts);
+            
+            if (user.resetPasswordOtpAttempts >= 5) {
+                user.resetPasswordOtp = null;
+                user.resetPasswordOtpExpires = null;
+                user.resetPasswordOtpAttempts = 0;
+            }
+            await user.save();
+
+            if (attemptsLeft === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Too many incorrect OTP attempts. This OTP has been invalidated. Please request a new code.",
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                message: `Incorrect OTP code. ${attemptsLeft} attempt${attemptsLeft === 1 ? "" : "s"} remaining.`,
+            });
+        }
+
+        // OTP Verified successfully -> Clear OTP (Single-Use) & Issue short-lived Reset Authorization Token
+        user.resetPasswordOtp = null;
+        user.resetPasswordOtpExpires = null;
+        user.resetPasswordOtpAttempts = 0;
+
+        const rawResetToken = crypto.randomBytes(32).toString("hex");
+        const hashedResetToken = crypto.createHash("sha256").update(rawResetToken).digest("hex");
+
+        user.resetPasswordToken = hashedResetToken;
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes authorization window
+        await user.save();
+
+        return res.json({
+            success: true,
+            message: "OTP verified successfully. Please enter your new password.",
+            resetToken: rawResetToken,
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Reset Password with Verified Single-Use Reset Token
+ */
 exports.resetPassword = async (req, res) => {
     if (!isDbConnected()) {
         return res.status(503).json({ success: false, message: "Database unavailable." });
@@ -570,10 +688,10 @@ exports.resetPassword = async (req, res) => {
         const rawToken = token || resetToken;
 
         if (!rawToken || typeof rawToken !== "string" || !rawToken.trim()) {
-            return res.status(400).json({ success: false, message: "Password reset token is required." });
+            return res.status(400).json({ success: false, message: "Password reset authorization token is required." });
         }
 
-        if (!newPassword || newPassword.length < 6) {
+        if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
             return res.status(400).json({ success: false, message: "Password must be at least 6 characters long." });
         }
 
@@ -586,7 +704,7 @@ exports.resetPassword = async (req, res) => {
         if (!user) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid, expired, or already used password reset link. Please request a new one.",
+                message: "Invalid, expired, or already used reset session. Please request a new OTP code.",
             });
         }
 
@@ -594,6 +712,9 @@ exports.resetPassword = async (req, res) => {
         user.password = await bcrypt.hash(newPassword, 10);
         user.resetPasswordToken = null;
         user.resetPasswordExpires = null;
+        user.resetPasswordOtp = null;
+        user.resetPasswordOtpExpires = null;
+        user.resetPasswordOtpAttempts = 0;
         user.refreshToken = null; // Invalidate existing session refresh tokens
         user.passwordChangedAt = new Date();
         await user.save();
@@ -605,7 +726,7 @@ exports.resetPassword = async (req, res) => {
             action: "PASSWORD_RESET_COMPLETED",
             resourceType: "USER",
             resourceId: user._id.toString(),
-            details: { method: "SECURE_TOKEN_RESET" },
+            details: { method: "SECURE_EMAIL_OTP" },
             status: "SUCCESS",
             req,
         });
@@ -613,17 +734,17 @@ exports.resetPassword = async (req, res) => {
         // Broadcast realtime session invalidation event to other connected clients
         realtimeService.emitPasswordChanged(user._id);
 
-        res.json({
+        return res.json({
             success: true,
             message: "Password reset successfully. You can now log in with your new password.",
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
 // =============================================================================
-// UPDATE PROFILE (Persisted in MongoDB)
+// UPDATE PROFILE & CHANGE PASSWORD (Persisted in MongoDB & Bcrypt Verified)
 // =============================================================================
 exports.updateProfile = async (req, res) => {
     if (!isDbConnected()) {
@@ -631,41 +752,138 @@ exports.updateProfile = async (req, res) => {
     }
 
     try {
-        const { name } = req.body;
-        if (!name || !name.trim()) {
-            return res.status(400).json({ success: false, message: "Name cannot be empty." });
-        }
+        const { name, currentPassword, newPassword } = req.body;
 
         const user = await User.findById(req.user.id);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found." });
         }
 
-        user.name = name.trim();
+        // Account status check
+        if (user.status === "suspended") {
+            return res.status(403).json({
+                success: false,
+                message: "Account is suspended. Please contact an administrator.",
+            });
+        }
+
+        // Determine if password change is requested
+        const hasCurrentPassword = typeof currentPassword === "string" && currentPassword.length > 0;
+        const hasNewPassword = typeof newPassword === "string" && newPassword.length > 0;
+        const isPasswordChangeRequested = hasCurrentPassword || hasNewPassword;
+
+        let passwordChanged = false;
+
+        if (isPasswordChangeRequested) {
+            // Google-only account check (no local password hash exists)
+            if (!user.password || (user.authProvider === "google" && !user.password)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "This account was created using Google Sign-In and does not have a local password to change.",
+                });
+            }
+
+            // Current password is required
+            if (!hasCurrentPassword || !currentPassword.trim()) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Current password is required to change your password.",
+                });
+            }
+
+            // Verify current password using bcrypt against stored MongoDB hash
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                // Critical: Do NOT change password, do NOT update MongoDB hash, do NOT invalidate sessions, do NOT emit realtime event
+                return res.status(401).json({
+                    success: false,
+                    message: "Current password is incorrect.",
+                });
+            }
+
+            // Validate new password
+            if (!hasNewPassword || newPassword.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    message: "New password must be at least 6 characters long.",
+                });
+            }
+
+            // Ensure new password is not identical to current password
+            if (currentPassword === newPassword || (await bcrypt.compare(newPassword, user.password))) {
+                return res.status(400).json({
+                    success: false,
+                    message: "New password cannot be the same as the current password.",
+                });
+            }
+
+            // Bcrypt-hash new password and update user security credentials
+            user.password = await bcrypt.hash(newPassword, 10);
+            user.passwordChangedAt = new Date();
+            user.refreshToken = null; // Invalidate existing session refresh tokens
+            passwordChanged = true;
+        }
+
+        // Update name if provided
+        let nameChanged = false;
+        if (name !== undefined && name !== null) {
+            const trimmedName = typeof name === "string" ? name.trim() : "";
+            if (!trimmedName) {
+                return res.status(400).json({ success: false, message: "Name cannot be empty." });
+            }
+            if (trimmedName !== user.name) {
+                user.name = trimmedName;
+                nameChanged = true;
+            }
+        }
+
+        // Save changes to MongoDB
         await user.save();
 
-        await logActivity({
-            userId: user._id,
-            userEmail: user.email,
-            action: "PROFILE_UPDATED",
-            resourceType: "USER",
-            resourceId: user._id.toString(),
-            details: { newName: user.name },
-            status: "SUCCESS",
-            req,
-        });
+        // Audit Logging & Realtime Events
+        if (passwordChanged) {
+            await logActivity({
+                userId: user._id,
+                userEmail: user.email,
+                action: "PASSWORD_CHANGED",
+                resourceType: "USER",
+                resourceId: user._id.toString(),
+                details: { method: "PROFILE_PASSWORD_CHANGE" },
+                status: "SUCCESS",
+                req,
+            });
 
-        res.json({
+            // Broadcast realtime session invalidation event to connected clients
+            realtimeService.emitPasswordChanged(user._id);
+        } else if (nameChanged) {
+            await logActivity({
+                userId: user._id,
+                userEmail: user.email,
+                action: "PROFILE_UPDATED",
+                resourceType: "USER",
+                resourceId: user._id.toString(),
+                details: { newName: user.name },
+                status: "SUCCESS",
+                req,
+            });
+        }
+
+        const successMessage = passwordChanged
+            ? "Password changed successfully. Existing sessions have been invalidated."
+            : "Profile updated successfully.";
+
+        return res.json({
             success: true,
-            message: "Profile updated successfully.",
+            message: successMessage,
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                authProvider: user.authProvider || "local",
             },
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
