@@ -21,7 +21,7 @@ class WhalePriceCorrelator {
     constructor() {
         this.mempoolClient = axios.create({
             baseURL: MEMPOOL_API_BASE,
-            timeout: 6000,
+            timeout: 12000,
             headers: {
                 Accept: "application/json",
                 "User-Agent": "CryptoScope-AI-WhaleCorrelator/2.0",
@@ -30,7 +30,7 @@ class WhalePriceCorrelator {
 
         this.coingeckoClient = axios.create({
             baseURL: COINGECKO_API_BASE,
-            timeout: 6000,
+            timeout: 12000,
             headers: {
                 Accept: "application/json",
                 "User-Agent": "CryptoScope-AI-WhaleCorrelator/2.0",
@@ -53,8 +53,16 @@ class WhalePriceCorrelator {
         if (cached) return cached;
 
         try {
-            const txsRes = await this.mempoolClient.get(`/address/${cleanAddr}/txs`);
-            const txs = Array.isArray(txsRes.data) ? txsRes.data : [];
+            let txs = [];
+            try {
+                const txsRes = await this.mempoolClient.get(`/address/${cleanAddr}/txs`);
+                txs = Array.isArray(txsRes.data) ? txsRes.data : [];
+            } catch (mErr) {
+                console.warn("[WhalePriceCorrelator] Mempool fetch notice:", mErr.message);
+                // Fallback to Blockstream
+                const bsRes = await axios.get(`https://blockstream.info/api/address/${cleanAddr}/txs`, { timeout: 12000 });
+                txs = Array.isArray(bsRes.data) ? bsRes.data : [];
+            }
 
             // Filter large transactions
             const whaleTxs = [];
@@ -107,7 +115,15 @@ class WhalePriceCorrelator {
                 } catch (cgErr) {
                     console.warn(`[WhalePriceCorrelator] CoinGecko notice:`, cgErr.message);
                 }
-                return null;
+                return {
+                    txid: wTx.txid,
+                    volumeBtc: wTx.volumeBtc,
+                    txTimestamp: wTx.isoTime,
+                    btcPriceAtWindowStartUsd: null,
+                    btcPriceAtWindowEndUsd: null,
+                    priceDeltaPct: null,
+                    marketObservation: "Spot price swing unavailable during this query window (CoinGecko rate-limit or timeout).",
+                };
             });
 
             const settled = await Promise.all(correlationPromises);
@@ -119,9 +135,9 @@ class WhalePriceCorrelator {
                 totalLargeTxsEvaluated: whaleTxs.length,
                 correlations,
                 summaryFinding: correlations.length > 0
-                    ? `Correlated ${correlations.length} large transfer(s) (>= ${WHALE_THRESHOLD_BTC} BTC) against real CoinGecko spot price data.`
+                    ? `Correlated ${correlations.length} large transfer(s) (>= ${WHALE_THRESHOLD_BTC} BTC) against real on-chain transfer data.`
                     : "No high-volume transactions (>= 1.0 BTC) detected in recent on-chain history.",
-                dataSource: "Mempool.space On-Chain Telemetry + CoinGecko Live Market Chart API",
+                dataSource: "Mempool.space / Blockstream On-Chain Telemetry + CoinGecko Market Charts",
                 analyzedAt: new Date().toISOString(),
             };
 
@@ -129,7 +145,15 @@ class WhalePriceCorrelator {
             return result;
         } catch (err) {
             console.warn("[WhalePriceCorrelator] Error:", err.message);
-            throw new Error(`Failed to correlate whale moves: ${err.message}`);
+            return {
+                address: cleanAddr,
+                whaleThresholdBtc: WHALE_THRESHOLD_BTC,
+                totalLargeTxsEvaluated: 0,
+                correlations: [],
+                summaryFinding: "Whale transaction telemetry temporarily unreachable.",
+                dataSource: "Mempool.space / Blockstream On-Chain Telemetry (Offline)",
+                analyzedAt: new Date().toISOString(),
+            };
         }
     }
 }

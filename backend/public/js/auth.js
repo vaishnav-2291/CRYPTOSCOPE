@@ -132,7 +132,7 @@ const data = await response.json();
 
 
 
-alert(data.message);
+console.log(data.message);
 
 
 
@@ -213,7 +213,7 @@ data.token
 
 
 
-alert("Login Successful");
+console.log("Login Successful");
 
 
 
@@ -226,7 +226,7 @@ window.location.href="/";
 else{
 
 
-alert(data.message);
+console.log(data.message);
 
 
 }

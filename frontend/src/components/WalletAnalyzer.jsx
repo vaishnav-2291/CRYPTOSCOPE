@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { scanWallet, addToWatchlist } from "../services/api";
+import { useToast } from "../context/ToastContext";
 import { formatBtc, formatUsd, truncateAddress, getRiskTheme } from "../utils/constants";
 import RiskGauge from "./RiskGauge";
 import RiskRadarChart from "./RiskRadarChart";

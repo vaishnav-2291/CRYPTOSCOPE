@@ -26,7 +26,7 @@ class WalletWatcherService {
     constructor() {
         this.client = axios.create({
             baseURL: MEMPOOL_API_BASE,
-            timeout: 6000,
+            timeout: 12000,
             headers: {
                 Accept: "application/json",
                 "User-Agent": "CryptoScope-AI-Watcher/2.0",
@@ -123,8 +123,17 @@ class WalletWatcherService {
      */
     async checkAddressActivity(address, subscribers) {
         try {
-            const res = await this.client.get(`/address/${address}/txs`);
-            const txs = Array.isArray(res.data) ? res.data : [];
+            let txs = [];
+            try {
+                const res = await this.client.get(`/address/${address}/txs`);
+                txs = Array.isArray(res.data) ? res.data : [];
+            } catch {
+                const bsRes = await axios.get(`https://blockstream.info/api/address/${address}/txs`, {
+                    timeout: 12000,
+                    headers: { Accept: "application/json" },
+                });
+                txs = Array.isArray(bsRes.data) ? bsRes.data : [];
+            }
             if (txs.length === 0) return;
 
             // Initialize baseline set if first time checking this address

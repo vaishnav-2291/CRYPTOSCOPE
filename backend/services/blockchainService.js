@@ -11,7 +11,7 @@ class BitcoinProvider {
         this.name = "Bitcoin Mainnet RPC/API";
         this.mempoolClient = axios.create({
             baseURL: MEMPOOL_API_BASE,
-            timeout: 5000,
+            timeout: 12000,
             headers: {
                 Accept: "application/json",
                 "User-Agent": "CryptoScope-AI-BlockchainEngine/2.0",
@@ -20,7 +20,7 @@ class BitcoinProvider {
 
         this.blockstreamClient = axios.create({
             baseURL: BLOCKSTREAM_API_BASE,
-            timeout: 5000,
+            timeout: 12000,
             headers: {
                 Accept: "application/json",
                 "User-Agent": "CryptoScope-AI-BlockchainEngine/2.0",

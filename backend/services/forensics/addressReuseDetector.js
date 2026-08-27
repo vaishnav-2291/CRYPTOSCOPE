@@ -41,8 +41,12 @@ class AddressReuseDetector {
             const res = await this.client.get(`/address/${address}`);
             return res.data || {};
         } catch {
-            const fb = await this.fallbackClient.get(`/address/${address}`);
-            return fb.data || {};
+            try {
+                const fb = await this.fallbackClient.get(`/address/${address}`);
+                return fb.data || {};
+            } catch {
+                return {};
+            }
         }
     }
 
@@ -51,8 +55,12 @@ class AddressReuseDetector {
             const res = await this.client.get(`/address/${address}/txs`);
             return Array.isArray(res.data) ? res.data : [];
         } catch {
-            const fb = await this.fallbackClient.get(`/address/${address}/txs`);
-            return Array.isArray(fb.data) ? fb.data : [];
+            try {
+                const fb = await this.fallbackClient.get(`/address/${address}/txs`);
+                return Array.isArray(fb.data) ? fb.data : [];
+            } catch {
+                return [];
+            }
         }
     }
 

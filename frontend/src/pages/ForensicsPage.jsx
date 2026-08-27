@@ -213,7 +213,7 @@ export const ForensicsPage = () => {
   const riskColor =
     riskScore >= 70
       ? "text-red-400 border-red-500/40 bg-red-500/10"
-      : riskScore >= 35
+      : riskScore >= 40
       ? "text-amber-400 border-amber-500/40 bg-amber-500/10"
       : "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
 

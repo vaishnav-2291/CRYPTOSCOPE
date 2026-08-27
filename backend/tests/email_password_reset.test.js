@@ -27,7 +27,15 @@ describe("CRYPTOSCOPE Real Email & Password Reset Security Suite", () => {
         if (mongoose.connection.readyState !== 1) {
             const mongoUri = process.env.MONGO_URI;
             if (mongoUri) {
-                await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 15000 });
+                        break;
+                    } catch (connErr) {
+                        if (attempt === 3) throw connErr;
+                        await new Promise((r) => setTimeout(r, 1000));
+                    }
+                }
             }
         }
 

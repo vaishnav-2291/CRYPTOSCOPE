@@ -340,7 +340,7 @@ function calculateRisk(data) {
     const riskScore = Math.max(0, Math.min(100, rawScore));
 
     let riskLevel = "Low";
-    if (riskScore >= 70 || (entityTag && entityTag.isSanctioned)) {
+    if (riskScore >= 70) {
         riskLevel = "High";
     } else if (riskScore >= 40) {
         riskLevel = "Medium";

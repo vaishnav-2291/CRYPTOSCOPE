@@ -144,7 +144,7 @@ const PublicReport = () => {
         {/* Public Banner */}
         <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-cyan-300 font-mono">
           <span>🌐 Public Verified Security Audit • Read-Only Live View</span>
-          <span className="text-slate-300">Report generated: {new Date(report.createdAt || Date.now()).toLocaleString()}</span>
+          <span className="text-slate-300">Report generated: {report.createdAt ? new Date(report.createdAt).toLocaleString() : "Live Verified"}</span>
         </div>
 
         {/* Target Header Card */}

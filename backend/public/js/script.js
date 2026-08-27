@@ -25,37 +25,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if(!token){
-
-
-            alert("Please login first");
-
-
+            console.warn("Please login first");
             window.location.href="/auth";
-
-
             return;
-
-
         }
-
-
-
-
 
         const wallet = walletInput.value.trim();
 
-
-
-
         if(wallet === ""){
-
-
-            alert("Enter Bitcoin Wallet Address");
-
-
+            console.warn("Enter Bitcoin Wallet Address");
             return;
-
-
         }
 
 

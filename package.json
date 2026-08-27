@@ -5,7 +5,7 @@
   "scripts": {
     "dev:backend": "cd backend && node server.js",
     "dev:frontend": "cd frontend && npm run dev",
-    "test": "node --test backend/tests/*.test.js",
+    "test": "node --test --test-concurrency=1 backend/tests/*.test.js backend/tests/full_e2e_verification.js",
     "build": "cd frontend && npm run build"
   },
   "keywords": [

@@ -144,10 +144,28 @@ export const getMarketPrices = async () => {
 
 export const getMempoolTelemetry = async () => {
   try {
-    const [feesRes, tipRes] = await Promise.all([
-      fetch("https://mempool.space/api/v1/fees/recommended").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch("https://mempool.space/api/blocks/tip/height").then((r) => (r.ok ? r.text() : null)).catch(() => null),
+    let [feesRes, tipRes] = await Promise.all([
+      fetch("https://mempool.space/api/v1/fees/recommended", { signal: AbortSignal.timeout(6000) })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch("https://mempool.space/api/blocks/tip/height", { signal: AbortSignal.timeout(6000) })
+        .then((r) => (r.ok ? r.text() : null))
+        .catch(() => null),
     ]);
+
+    // Fallback to Blockstream if mempool.space is rate-limited or unreachable
+    if (!feesRes) {
+      feesRes = await fetch("https://blockstream.info/api/fee-estimates", { signal: AbortSignal.timeout(6000) })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => (data ? { fastestFee: Math.round(data["1"] || data["2"] || data["6"] || 1) } : null))
+        .catch(() => null);
+    }
+    if (!tipRes) {
+      tipRes = await fetch("https://blockstream.info/api/blocks/tip/height", { signal: AbortSignal.timeout(6000) })
+        .then((r) => (r.ok ? r.text() : null))
+        .catch(() => null);
+    }
+
     return {
       recommendedFee: feesRes?.fastestFee || feesRes?.halfHourFee || null,
       blockHeight: tipRes ? parseInt(tipRes.trim(), 10) : null,

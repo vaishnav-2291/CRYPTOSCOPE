@@ -185,6 +185,5 @@ test("CryptoScope AI — Round 3 Analyst-Grade Upgrades Test Suite", async (t) =
         if (escalateData.createdCase._id) await caseService.deleteCase(escalateData.createdCase._id, mockUserId).catch(() => {});
     });
 
-    server.close();
-    setTimeout(() => process.exit(0), 100);
+    await new Promise((resolve) => server.close(resolve));
 });
