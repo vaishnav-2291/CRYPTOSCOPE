@@ -72,6 +72,11 @@ export const forensicsApi = {
     return res.data;
   },
 
+  getCoinDaysDestroyed: async (address) => {
+    const res = await api.get(`/forensics/cdd/${address}`);
+    return res.data;
+  },
+
   // Consolidated Full Audit (All Modules)
   getFullForensicAudit: async (address) => {
     const res = await api.get(`/forensics/full-audit/${address}`);

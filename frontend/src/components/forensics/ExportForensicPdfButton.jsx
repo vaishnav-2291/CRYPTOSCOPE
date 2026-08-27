@@ -80,6 +80,7 @@ export const ExportForensicPdfButton = ({ auditData, address }) => {
         `• Multi-Hop Sanction Proximity: ${summary.propagationExposureScore || 0}/100 Exposure`,
         `• Address Reuse Privacy Grade: Grade ${summary.privacyGrade || "A"}`,
         `• Privacy Mixer Exposure: ${summary.mixerExposure || "NONE"}`,
+        `• Coin Days Destroyed (CDD): ${auditData.cdd?.metrics?.totalCoinDaysDestroyed || 0} CDD (Peak: ${auditData.cdd?.metrics?.maxSingleTxCdd || 0} CDD)`,
         `• Mainnet Balance Tier: ${summary.topBalancePercentileTier || "Top 50%"}`,
       ];
 
@@ -107,6 +108,10 @@ export const ExportForensicPdfButton = ({ auditData, address }) => {
         {
           title: "Common-Input Entity Clustering",
           detail: auditData.cluster?.forensicAssessment || "Evaluated multi-input co-spending signatures.",
+        },
+        {
+          title: "Coin Days Destroyed & Dormancy Telemetry",
+          detail: auditData.cdd?.dormancyClassification?.assessment || "Audited historical UTXO holding duration and dormant coin movement.",
         },
         {
           title: "Fee Urgency & Mempool Congestion",

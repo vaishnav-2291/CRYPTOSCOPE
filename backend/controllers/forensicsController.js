@@ -13,6 +13,7 @@ const addressReuseDetector = require("../services/forensics/addressReuseDetector
 const mixerDetector = require("../services/forensics/mixerDetector");
 const whalePriceCorrelator = require("../services/forensics/whalePriceCorrelator");
 const peerPercentileRanker = require("../services/forensics/peerPercentileRanker");
+const coinDaysDestroyedDetector = require("../services/forensics/coinDaysDestroyedDetector");
 
 // =============================================================================
 // ROUND 1 ENDPOINTS
@@ -159,6 +160,17 @@ exports.getPeerPercentiles = async (req, res) => {
     }
 };
 
+exports.getCoinDaysDestroyed = async (req, res) => {
+    try {
+        const { address } = req.params;
+        const result = await coinDaysDestroyedDetector.analyzeCoinDaysDestroyed(address);
+        return res.status(200).json({ success: true, ...result });
+    } catch (err) {
+        console.error("[ForensicsController] Coin Days Destroyed error:", err.message);
+        return res.status(500).json({ success: false, message: err.message || "Failed to analyze Coin Days Destroyed." });
+    }
+};
+
 // =============================================================================
 // CONSOLIDATED FULL AUDIT (ROUND 1 + ROUND 2)
 // =============================================================================
@@ -179,6 +191,7 @@ exports.getFullForensicAudit = async (req, res) => {
             mixer,
             whale,
             percentile,
+            cdd,
         ] = await Promise.all([
             dustingDetector.analyzeAddress(cleanAddr).catch((e) => ({ error: e.message })),
             clusterEngine.extractCluster(cleanAddr).catch((e) => ({ error: e.message })),
@@ -190,6 +203,7 @@ exports.getFullForensicAudit = async (req, res) => {
             mixerDetector.analyzeMixerExposure(cleanAddr).catch((e) => ({ error: e.message })),
             whalePriceCorrelator.correlateWhaleMoves(cleanAddr).catch((e) => ({ error: e.message })),
             peerPercentileRanker.rankAddressPeers(cleanAddr).catch((e) => ({ error: e.message })),
+            coinDaysDestroyedDetector.analyzeCoinDaysDestroyed(cleanAddr).catch((e) => ({ error: e.message })),
         ]);
 
         return res.status(200).json({
@@ -205,6 +219,8 @@ exports.getFullForensicAudit = async (req, res) => {
                 privacyGrade: reuse.privacyGrade || "A",
                 mixerExposure: mixer.mixerExposureLevel || "NONE",
                 topBalancePercentileTier: percentile.peerPercentiles?.topBalanceTier || "Top 50%",
+                cddPeakSingleTx: cdd.metrics?.maxSingleTxCdd || 0,
+                dormancySignal: cdd.dormancyClassification?.reactivationSignal || "STANDARD_CIRCULATION",
             },
             dusting,
             cluster,
@@ -216,6 +232,7 @@ exports.getFullForensicAudit = async (req, res) => {
             mixer,
             whale,
             percentile,
+            cdd,
             auditedAt: new Date().toISOString(),
         });
     } catch (err) {

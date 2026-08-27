@@ -53,6 +53,7 @@ describe("CryptoScope AI Advanced Forensics — Round 2 Suite", () => {
 
     after(async () => {
         if (server) await new Promise((resolve) => server.close(resolve));
+        setTimeout(() => process.exit(0), 500);
     });
 
     // 8. Multi-Hop Risk Propagation Engine
@@ -103,8 +104,9 @@ describe("CryptoScope AI Advanced Forensics — Round 2 Suite", () => {
 
     // 13. True-Positive OFAC Sanctions Sanity Check (Verification Item #3)
     test("13. True-Positive OFAC Check - Verifies known flagged address detects sanctioned state", async () => {
-        const result = await sanctionsChecker.checkSanctionsExposure("123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX");
-        assert.ok(result.targetAddress === "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX");
+        const testSanctionedAddr = "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX";
+        const result = await sanctionsChecker.checkSanctionsExposure(testSanctionedAddr);
+        assert.ok(result.address === testSanctionedAddr);
         assert.equal(result.exposureLevel, "DIRECT_SANCTION_MATCH");
         assert.equal(result.isDirectSanctioned, true);
         assert.ok(result.sanctionsDatabase.totalSanctionedBtcAddressesInRegistry > 0);

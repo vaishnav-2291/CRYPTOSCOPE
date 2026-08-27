@@ -169,29 +169,32 @@ const KNOWN_ENTITIES = {
 
 /**
  * Look up entity info for an address
+ * Relabels all static lookups with explicit non-live provenance to prevent misrepresentation.
  */
 function lookupEntity(address) {
     if (!address) return null;
     const cleanAddr = address.trim();
 
+    const formatEntityResponse = (addr, rawData) => ({
+        address: addr,
+        ...rawData,
+        matched: true,
+        isLiveVerified: false,
+        sourceType: "Community-Sourced Reference Tag (static, not live-verified)",
+        provenance: "Community-Sourced Reference Tag (static, not live-verified)",
+        tagLabel: "Community-Sourced Reference Tag (static, not live-verified)",
+    });
+
     // Check direct match
     if (KNOWN_ENTITIES[cleanAddr]) {
-        return {
-            address: cleanAddr,
-            ...KNOWN_ENTITIES[cleanAddr],
-            matched: true,
-        };
+        return formatEntityResponse(cleanAddr, KNOWN_ENTITIES[cleanAddr]);
     }
 
     // Check case-insensitive match
     const lowerAddr = cleanAddr.toLowerCase();
     for (const [key, val] of Object.entries(KNOWN_ENTITIES)) {
         if (key.toLowerCase() === lowerAddr) {
-            return {
-                address: key,
-                ...val,
-                matched: true,
-            };
+            return formatEntityResponse(key, val);
         }
     }
 
@@ -199,12 +202,15 @@ function lookupEntity(address) {
 }
 
 /**
- * Get full entity registry
+ * Get full entity registry with explicit static reference metadata
  */
 function getAllEntities() {
     return Object.entries(KNOWN_ENTITIES).map(([address, data]) => ({
         address,
         ...data,
+        isLiveVerified: false,
+        sourceType: "Community-Sourced Reference Tag (static, not live-verified)",
+        provenance: "Community-Sourced Reference Tag (static, not live-verified)",
     }));
 }
 

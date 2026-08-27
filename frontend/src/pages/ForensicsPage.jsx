@@ -16,6 +16,7 @@ import AddressReuseCard from "../components/forensics/AddressReuseCard";
 import MixerDetectionCard from "../components/forensics/MixerDetectionCard";
 import WhalePriceImpactCard from "../components/forensics/WhalePriceImpactCard";
 import PeerPercentileCard from "../components/forensics/PeerPercentileCard";
+import CoinDaysDestroyedCard from "../components/forensics/CoinDaysDestroyedCard";
 import ExportForensicPdfButton from "../components/forensics/ExportForensicPdfButton";
 
 import {
@@ -33,6 +34,7 @@ import {
   Shuffle,
   DollarSign,
   Award,
+  Flame,
   ExternalLink,
 } from "lucide-react";
 
@@ -223,6 +225,7 @@ export const ForensicsPage = () => {
           { id: "cluster", label: "Entity Clustering", icon: Network },
           { id: "reuse", label: "Address Reuse", icon: Eye },
           { id: "mixer", label: "Mixer Detection", icon: Shuffle },
+          { id: "cdd", label: "Coin Days Destroyed", icon: Flame },
           { id: "whale", label: "Whale Price Impact", icon: DollarSign },
           { id: "percentile", label: "Peer Percentile", icon: Award },
           { id: "fee", label: "Fee Urgency", icon: Zap },
@@ -353,7 +356,16 @@ export const ForensicsPage = () => {
           </div>
         )}
 
-        {/* Row 5: Fee Urgency & Explainability Matrix */}
+        {/* Row 5: Coin Days Destroyed / Dormant-Coin Dynamics */}
+        {(activeTab === "all" || activeTab === "cdd") && (
+          <CoinDaysDestroyedCard
+            data={auditData?.cdd}
+            loading={loading}
+            error={error}
+          />
+        )}
+
+        {/* Row 6: Fee Urgency & Explainability Matrix */}
         {(activeTab === "all" || activeTab === "fee") && (
           <FeeUrgencyCard
             data={auditData?.feeUrgency}

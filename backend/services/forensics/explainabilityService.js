@@ -15,6 +15,7 @@ const dustingDetector = require("./dustingDetector");
 const feeUrgencyAnalyzer = require("./feeUrgencyAnalyzer");
 const clusterEngine = require("./clusterEngine");
 const sanctionsChecker = require("./sanctionsChecker");
+const coinDaysDestroyedDetector = require("./coinDaysDestroyedDetector");
 
 class ExplainabilityService {
     /**
@@ -29,12 +30,13 @@ class ExplainabilityService {
         const cleanAddr = address.trim();
 
         // Run live parallel analyses
-        const [walletData, dustingData, feeData, clusterData, sanctionsData] = await Promise.all([
+        const [walletData, dustingData, feeData, clusterData, sanctionsData, cddData] = await Promise.all([
             getWalletData(cleanAddr),
             dustingDetector.analyzeAddress(cleanAddr).catch(() => null),
             feeUrgencyAnalyzer.analyzeFeeUrgency(cleanAddr).catch(() => null),
             clusterEngine.extractCluster(cleanAddr).catch(() => null),
             sanctionsChecker.checkSanctionsExposure(cleanAddr).catch(() => null),
+            coinDaysDestroyedDetector.analyzeCoinDaysDestroyed(cleanAddr).catch(() => null),
         ]);
 
         const riskEvaluation = riskEngine.calculateRisk(walletData);
@@ -98,6 +100,21 @@ class ExplainabilityService {
                 triggeredMetric: `${clusterData.clusteredAddresses.length} co-spending sibling addresses identified`,
                 plainEnglishReason: "Multi-input transactions demonstrate shared private-key control across sibling addresses.",
                 forensicRecommendation: "Inspect sibling addresses in cluster explorer to identify aggregated entity holdings.",
+            });
+        }
+
+        if (cddData?.metrics?.maxSingleTxCdd >= 20) {
+            explainableRules.push({
+                id: "FORENSIC-CDD-01",
+                title: "Dormant-Coin Reactivation / High Coin Days Destroyed",
+                dimension: "UTXO Dormancy Dynamics",
+                severity: cddData.metrics.maxSingleTxCdd >= 500 ? "WARNING" : "INFO",
+                category: "HEURISTIC_SIGNAL",
+                signalNature: "Heuristic dormancy pattern (not proof of intent)",
+                pointsAssigned: cddData.metrics.maxSingleTxCdd >= 500 ? 10 : 5,
+                triggeredMetric: `Peak single-tx CDD: ${cddData.metrics.maxSingleTxCdd} coin days (Total: ${cddData.metrics.totalCoinDaysDestroyed} CDD)`,
+                plainEnglishReason: `Long-dormant UTXOs were reactivated in this address's spending history (${cddData.metrics.averageCoinAgeDays} average days dormancy).`,
+                forensicRecommendation: "Investigate whether dormant activation corresponds to cold wallet migration, key recovery, or legacy fund movement.",
             });
         }
 

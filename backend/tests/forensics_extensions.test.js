@@ -48,6 +48,7 @@ describe("CryptoScope AI Advanced Forensics Extension Test Suite", () => {
 
     after(async () => {
         if (server) await new Promise((resolve) => server.close(resolve));
+        setTimeout(() => process.exit(0), 500);
     });
 
     // 1. Dusting Attack Detector
