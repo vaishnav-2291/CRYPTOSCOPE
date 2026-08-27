@@ -14,6 +14,8 @@ const mixerDetector = require("../services/forensics/mixerDetector");
 const whalePriceCorrelator = require("../services/forensics/whalePriceCorrelator");
 const peerPercentileRanker = require("../services/forensics/peerPercentileRanker");
 const coinDaysDestroyedDetector = require("../services/forensics/coinDaysDestroyedDetector");
+const threatRadarService = require("../services/forensics/threatRadarService");
+const alertTriageService = require("../services/forensics/alertTriageService");
 
 // =============================================================================
 // ROUND 1 ENDPOINTS
@@ -172,7 +174,69 @@ exports.getCoinDaysDestroyed = async (req, res) => {
 };
 
 // =============================================================================
-// CONSOLIDATED FULL AUDIT (ROUND 1 + ROUND 2)
+// ROUND 3 ENDPOINTS (THREAT RADAR & ALERT TRIAGE)
+// =============================================================================
+
+exports.getThreatRadarFeed = async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 30;
+        const result = threatRadarService.getRecentThreats(limit);
+        return res.status(200).json({ success: true, ...result });
+    } catch (err) {
+        console.error("[ForensicsController] Threat radar feed error:", err.message);
+        return res.status(500).json({ success: false, message: err.message || "Failed to fetch threat radar stream." });
+    }
+};
+
+exports.getThreatRadarStats = async (req, res) => {
+    try {
+        const result = threatRadarService.getStats();
+        return res.status(200).json({ success: true, stats: result });
+    } catch (err) {
+        console.error("[ForensicsController] Threat radar stats error:", err.message);
+        return res.status(500).json({ success: false, message: err.message || "Failed to fetch threat radar stats." });
+    }
+};
+
+exports.getTriageQueue = async (req, res) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const { status, priority, limit } = req.query;
+        const result = await alertTriageService.getTriageQueue(userId, { status, priority, limit: parseInt(limit) || 50 });
+        return res.status(200).json({ success: true, ...result });
+    } catch (err) {
+        console.error("[ForensicsController] Triage queue error:", err.message);
+        return res.status(500).json({ success: false, message: err.message || "Failed to fetch alert triage queue." });
+    }
+};
+
+exports.updateTriageStatus = async (req, res) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const { alertId } = req.params;
+        const { status } = req.body;
+        const result = await alertTriageService.updateAlertStatus(userId, alertId, status);
+        return res.status(200).json({ success: true, alert: result });
+    } catch (err) {
+        console.error("[ForensicsController] Update triage status error:", err.message);
+        return res.status(400).json({ success: false, message: err.message || "Failed to update triage status." });
+    }
+};
+
+exports.escalateTriageAlert = async (req, res) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const { alertId } = req.params;
+        const result = await alertTriageService.escalateAlertToCase(userId, alertId, req.body);
+        return res.status(201).json({ success: true, ...result });
+    } catch (err) {
+        console.error("[ForensicsController] Escalate alert error:", err.message);
+        return res.status(400).json({ success: false, message: err.message || "Failed to escalate alert to investigation case." });
+    }
+};
+
+// =============================================================================
+// CONSOLIDATED FULL AUDIT (ROUND 1 + ROUND 2 + ROUND 3)
 // =============================================================================
 
 exports.getFullForensicAudit = async (req, res) => {

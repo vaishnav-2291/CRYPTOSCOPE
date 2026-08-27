@@ -5,7 +5,7 @@
 const express = require("express");
 const router = express.Router();
 const forensicsController = require("../controllers/forensicsController");
-const { optionalAuth } = require("../middleware/authMiddleware");
+const { optionalAuth, authMiddleware } = require("../middleware/authMiddleware");
 const { requireValidBitcoinAddress } = require("../middleware/bitcoinAddressValidator");
 
 // Round 1 Routes
@@ -25,7 +25,14 @@ router.get("/whale-correlations/:address", optionalAuth, requireValidBitcoinAddr
 router.get("/peer-percentiles/:address", optionalAuth, requireValidBitcoinAddress, forensicsController.getPeerPercentiles);
 router.get("/cdd/:address", optionalAuth, requireValidBitcoinAddress, forensicsController.getCoinDaysDestroyed);
 
-// Consolidated Full Audit (Round 1 + Round 2)
+// Round 3 Routes (Threat Radar & Alert Triage Queue)
+router.get("/radar/feed", optionalAuth, forensicsController.getThreatRadarFeed);
+router.get("/radar/stats", optionalAuth, forensicsController.getThreatRadarStats);
+router.get("/triage/queue", authMiddleware, forensicsController.getTriageQueue);
+router.put("/triage/:alertId/status", authMiddleware, forensicsController.updateTriageStatus);
+router.post("/triage/:alertId/escalate", authMiddleware, forensicsController.escalateTriageAlert);
+
+// Consolidated Full Audit (Round 1 + Round 2 + Round 3)
 router.get("/full-audit/:address", optionalAuth, requireValidBitcoinAddress, forensicsController.getFullForensicAudit);
 
 module.exports = router;

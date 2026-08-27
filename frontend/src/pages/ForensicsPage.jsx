@@ -19,6 +19,11 @@ import PeerPercentileCard from "../components/forensics/PeerPercentileCard";
 import CoinDaysDestroyedCard from "../components/forensics/CoinDaysDestroyedCard";
 import ExportForensicPdfButton from "../components/forensics/ExportForensicPdfButton";
 
+// Round 3 Components (Analyst-Grade Upgrades)
+import ThreatRadarFeed from "../components/forensics/ThreatRadarFeed";
+import RiskRuleConfigPanel from "../components/forensics/RiskRuleConfigPanel";
+import AlertTriageQueueCard from "../components/forensics/AlertTriageQueueCard";
+
 import {
   ShieldAlert,
   Search,
@@ -35,6 +40,8 @@ import {
   DollarSign,
   Award,
   Flame,
+  Radio,
+  AlertOctagon,
   ExternalLink,
 } from "lucide-react";
 
@@ -219,6 +226,9 @@ export const ForensicsPage = () => {
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-800/80">
         {[
           { id: "all", label: "Full Forensic Dossier", icon: Layers },
+          { id: "radar", label: "Live Threat Radar", icon: Radio },
+          { id: "triage", label: "Alert Triage Queue", icon: AlertOctagon },
+          { id: "rules", label: "Risk Rule Config", icon: Sliders },
           { id: "graph", label: "Fund-Flow Graph", icon: Network },
           { id: "propagation", label: "Multi-Hop Proximity", icon: GitFork },
           { id: "dusting", label: "Dusting Detector", icon: ShieldAlert },
@@ -258,6 +268,36 @@ export const ForensicsPage = () => {
 
       {/* Grid of Forensic Modules */}
       <div className="space-y-6">
+        {/* Round 3: Threat Radar Feed */}
+        {(activeTab === "all" || activeTab === "radar") && (
+          <ThreatRadarFeed
+            onSelectAddress={(addr) => {
+              setInputAddress(addr);
+              setActiveAddress(addr);
+              navigate(`/forensics/${addr}`);
+            }}
+          />
+        )}
+
+        {/* Round 3: Alert Triage & Severity Queue */}
+        {(activeTab === "all" || activeTab === "triage") && (
+          <AlertTriageQueueCard
+            onEscalateToCase={(newCase) => {
+              navigate(`/cases`);
+            }}
+          />
+        )}
+
+        {/* Round 3: Configurable Risk Rule Engine */}
+        {(activeTab === "all" || activeTab === "rules") && (
+          <RiskRuleConfigPanel
+            currentRiskScore={auditData?.auditSummary?.overallRiskScore}
+            onConfigChanged={() => {
+              fetchForensicData(activeAddress);
+            }}
+          />
+        )}
+
         {(activeTab === "all" || activeTab === "graph") && (
           <LiveFundFlowGraph
             data={graphData}

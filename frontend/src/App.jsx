@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import PublicReport from "./pages/PublicReport";
 import ForensicsPage from "./pages/ForensicsPage";
+import CaseWorkspacePage from "./pages/CaseWorkspacePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -153,6 +154,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ForensicsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Investigation Case Workspace (Protected) */}
+            <Route
+              path="/cases"
+              element={
+                <ProtectedRoute>
+                  <CaseWorkspacePage />
                 </ProtectedRoute>
               }
             />

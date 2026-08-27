@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   Zap,
+  Briefcase,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -25,6 +26,7 @@ const Sidebar = () => {
     { name: "Overview Dashboard", path: "/", icon: LayoutDashboard },
     { name: "Wallet Analyzer", path: "/scan", icon: Search },
     { name: "Forensics Terminal", path: "/forensics", icon: Zap, badge: "v2.0" },
+    { name: "Case Workspace", path: "/cases", icon: Briefcase, badge: "v3.0" },
     { name: "Batch Multi-Scan", path: "/batch", icon: Layers, badge: "New" },
     { name: "Wallet Compare", path: "/compare", icon: GitCompare },
     { name: "Risk Watchlist", path: "/watchlist", icon: Eye },
