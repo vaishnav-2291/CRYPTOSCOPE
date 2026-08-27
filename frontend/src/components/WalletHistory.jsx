@@ -550,11 +550,7 @@ function WalletHistory() {
 
 
                     <td className="p-4 text-gray-300">
-
-
-                        {new Date(wallet.createdAt).toLocaleString()}
-
-
+                        {new Date(wallet.scannedAt || wallet.updatedAt || wallet.createdAt).toLocaleString()}
                     </td>
 
 

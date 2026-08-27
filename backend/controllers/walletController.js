@@ -69,8 +69,8 @@ exports.fetchWallet = async (req, res) => {
         // 2. Execute Deterministic 5-Axis Risk Engine
         const risk = calculateRisk(data);
 
-        // 3. Persist scan document to MongoDB
-        const walletScan = new Wallet({
+        // 3. Persist / Upsert scan document to MongoDB (one row per unique wallet address per user)
+        const scanPayload = {
             user: req.user.id,
             address: data.address,
             network: data.network || "bitcoin",
@@ -92,9 +92,13 @@ exports.fetchWallet = async (req, res) => {
             graphData: data.graphData,
             status: "COMPLETED",
             scannedAt: new Date(),
-        });
+        };
 
-        const savedScan = await walletScan.save();
+        const savedScan = await Wallet.findOneAndUpdate(
+            { user: req.user.id, address: data.address },
+            { $set: scanPayload },
+            { upsert: true, new: true, returnDocument: "after", setDefaultsOnInsert: true }
+        );
 
         // 4. If High Risk / Exploit / OFAC Triggered, persist SecurityAlert
         if (risk.riskScore >= 70 || risk.riskLevel === "High" || data.entityTag?.isSanctioned || data.entityTag?.isMixer) {
@@ -209,8 +213,8 @@ exports.batchScan = async (req, res) => {
                     const risk = calculateRisk(data);
                     data.balanceUSD = Number((data.balance * btcPriceUSD).toFixed(2));
 
-                    // Save each scan to MongoDB
-                    const scan = new Wallet({
+                    // Save / Upsert each scan to MongoDB
+                    const scanPayload = {
                         user: req.user.id,
                         address: addr,
                         scanType: "BATCH_SCAN",
@@ -226,9 +230,13 @@ exports.batchScan = async (req, res) => {
                         entityTag: data.entityTag,
                         status: "COMPLETED",
                         scannedAt: new Date(),
-                    });
+                    };
 
-                    await scan.save();
+                    const scan = await Wallet.findOneAndUpdate(
+                        { user: req.user.id, address: addr },
+                        { $set: scanPayload },
+                        { upsert: true, new: true, returnDocument: "after", setDefaultsOnInsert: true }
+                    );
 
                     return {
                         address: addr,
@@ -480,7 +488,7 @@ exports.getHistory = async (req, res) => {
 
     try {
         const query = { user: req.user.id };
-        const history = await Wallet.find(query).sort({ createdAt: -1 }).limit(50);
+        const history = await Wallet.find(query).sort({ scannedAt: -1, updatedAt: -1, createdAt: -1 }).limit(50);
 
         res.json({
             success: true,

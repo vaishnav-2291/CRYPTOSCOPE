@@ -49,7 +49,13 @@ function History() {
       if (event.type === "connected") {
         setRealtimeActive(true);
       } else if (event.type === "scan_completed") {
-        setHistory((prev) => [event.data, ...prev]);
+        setHistory((prev) => {
+          const updated = event.data;
+          const filtered = prev.filter(
+            (item) => item.address?.toLowerCase() !== updated.address?.toLowerCase()
+          );
+          return [updated, ...filtered];
+        });
       } else if (event.type === "activity_logged") {
         setActivities((prev) => [event.data, ...prev]);
       }
@@ -217,7 +223,7 @@ function History() {
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                      <span>Scanned: {new Date(wallet.createdAt || Date.now()).toLocaleString()}</span>
+                      <span>Scanned: {new Date(wallet.scannedAt || wallet.updatedAt || wallet.createdAt || Date.now()).toLocaleString()}</span>
                       <button
                         onClick={() => navigate(`/scan?address=${encodeURIComponent(wallet.address)}`)}
                         className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 transition"
