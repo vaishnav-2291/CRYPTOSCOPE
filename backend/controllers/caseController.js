@@ -1,12 +1,33 @@
-/**
- * CryptoScope AI — Investigation Case Workspace Controller
- */
-
 const caseService = require("../services/forensics/caseService");
+const { validateBitcoinAddressFormat } = require("../middleware/bitcoinAddressValidator");
 
 exports.createCase = async (req, res) => {
     try {
         const userId = req.user?.id || req.user?._id;
+        const { initialAddresses } = req.body;
+
+        if (Array.isArray(initialAddresses) && initialAddresses.length > 0) {
+            for (const item of initialAddresses) {
+                const addr = typeof item === "string" ? item : item?.address;
+                if (!addr) {
+                    return res.status(400).json({
+                        success: false,
+                        error: "INVALID_BITCOIN_ADDRESS",
+                        message: "A valid Bitcoin address is required in initialAddresses.",
+                    });
+                }
+                const validation = validateBitcoinAddressFormat(addr);
+                if (!validation.isValid) {
+                    return res.status(400).json({
+                        success: false,
+                        error: "INVALID_BITCOIN_ADDRESS",
+                        message: validation.error || `Invalid initial Bitcoin address '${addr}'.`,
+                        providedAddress: addr,
+                    });
+                }
+            }
+        }
+
         const result = await caseService.createCase(userId, req.body);
         return res.status(201).json({ success: true, case: result });
     } catch (err) {
@@ -66,7 +87,30 @@ exports.addAddressToCase = async (req, res) => {
     try {
         const userId = req.user?.id || req.user?._id;
         const { id } = req.params;
-        const result = await caseService.addAddressToCase(id, userId, req.body);
+        const address = req.validatedAddress || req.body?.address;
+
+        if (!address) {
+            return res.status(400).json({
+                success: false,
+                error: "INVALID_BITCOIN_ADDRESS",
+                message: "A valid Bitcoin address is required.",
+            });
+        }
+
+        const validation = validateBitcoinAddressFormat(address);
+        if (!validation.isValid) {
+            return res.status(400).json({
+                success: false,
+                error: "INVALID_BITCOIN_ADDRESS",
+                message: validation.error || "Invalid Bitcoin address format.",
+                providedAddress: address,
+            });
+        }
+
+        const result = await caseService.addAddressToCase(id, userId, {
+            ...req.body,
+            address: validation.address || address.trim(),
+        });
         return res.status(200).json({ success: true, case: result });
     } catch (err) {
         console.error("[CaseController] Add address error:", err.message);

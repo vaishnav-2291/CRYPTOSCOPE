@@ -15,8 +15,8 @@ router.get("/", caseController.getUserCases);
 router.get("/:id", caseController.getCaseById);
 router.get("/:id/live-dossier", caseController.getCaseLiveDossier);
 router.put("/:id", caseController.updateCase);
-router.post("/:id/addresses", caseController.addAddressToCase);
-router.delete("/:id/addresses/:address", caseController.removeAddressFromCase);
+router.post("/:id/addresses", requireValidBitcoinAddress, caseController.addAddressToCase);
+router.delete("/:id/addresses/:address", requireValidBitcoinAddress, caseController.removeAddressFromCase);
 router.post("/:id/notes", caseController.addTimelineNote);
 router.delete("/:id", caseController.deleteCase);
 

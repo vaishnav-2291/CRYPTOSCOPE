@@ -21,6 +21,7 @@ const {
 
 const { authMiddleware, optionalAuth, requireAdmin } = require("../middleware/authMiddleware");
 const { validateAddressParam, validateBatchAddresses } = require("../middleware/validators");
+const { requireValidBitcoinAddress } = require("../middleware/bitcoinAddressValidator");
 const { scanLimiter } = require("../middleware/rateLimiter");
 
 // 1. Public Shareable Report Endpoint (Allows unauthenticated viewing with optional auth)
@@ -42,7 +43,7 @@ router.post("/alerts/simulate", requireAdmin, simulateSecurityAlert);
 router.get("/watchlist", getWatchlist);
 router.post("/watchlist", addToWatchlist);
 router.post("/watchlist/rescan", rescanWatchlist);
-router.delete("/watchlist/:address", removeFromWatchlist);
+router.delete("/watchlist/:address", requireValidBitcoinAddress, removeFromWatchlist);
 
 // Multi-Address Batch Scanning
 router.post("/batch-scan", scanLimiter, validateBatchAddresses, batchScan);
