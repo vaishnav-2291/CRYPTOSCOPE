@@ -24,8 +24,19 @@ export const truncateAddress = (addr, start = 6, end = 6) => {
   return `${addr.slice(0, start)}...${addr.slice(-end)}`;
 };
 
-export const getRiskTheme = (level = "Low") => {
-  const l = (level || "").toLowerCase();
+export const getRiskLevel = (score = 0) => {
+  const s = typeof score === "number" ? score : parseFloat(score) || 0;
+  if (s >= 70) return "High";
+  if (s >= 40) return "Medium";
+  return "Low";
+};
+
+export const getRiskTheme = (levelOrScore = "Low") => {
+  let level = levelOrScore;
+  if (typeof levelOrScore === "number" || (!isNaN(Number(levelOrScore)) && typeof levelOrScore === "string" && !/low|med|high|crit/i.test(levelOrScore))) {
+    level = getRiskLevel(Number(levelOrScore));
+  }
+  const l = (level || "").toString().toLowerCase();
   if (l.includes("high") || l.includes("critical")) {
     return {
       text: "text-red-400",

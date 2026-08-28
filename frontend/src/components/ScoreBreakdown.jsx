@@ -8,36 +8,44 @@ function ScoreBreakdown({
 }) {
   const items = [
     {
-      title: "Transaction Risk",
+      title: "Transaction Velocity Risk",
       value: breakdown.transactionRisk || 0,
-      max: 40,
-      color: "bg-red-500",
-      description:
-        "Measures the overall transaction volume and frequency of the wallet.",
-    },
-    {
-      title: "Balance Risk",
-      value: breakdown.balanceRisk || 0,
-      max: 25,
-      color: "bg-orange-500",
-      description:
-        "Evaluates how much cryptocurrency is currently held by the wallet.",
-    },
-    {
-      title: "Transaction Pattern Risk",
-      value: breakdown.transactionPatternRisk || 0,
-      max: 15,
-      color: "bg-yellow-500",
-      description:
-        "Analyzes unusual transaction behaviour and transfer patterns.",
-    },
-    {
-      title: "Activity Risk",
-      value: breakdown.activityRisk || 0,
-      max: 5,
+      max: 20,
       color: "bg-cyan-500",
       description:
-        "Checks wallet activity level and account usage consistency.",
+        "Measures transaction volume, frequency, and fee urgency.",
+    },
+    {
+      title: "Balance Exposure Risk",
+      value: breakdown.balanceRisk || 0,
+      max: 15,
+      color: "bg-amber-500",
+      description:
+        "Evaluates capital concentration, whale status, and fund drain ratios.",
+    },
+    {
+      title: "Transit / Pattern Risk",
+      value: breakdown.patternRisk || 0,
+      max: 20,
+      color: "bg-purple-500",
+      description:
+        "Analyzes pass-through turnover, flow funneling, and direction imbalance.",
+    },
+    {
+      title: "Activity & Age Risk",
+      value: breakdown.activityRisk || 0,
+      max: 15,
+      color: "bg-blue-500",
+      description:
+        "Checks wallet age, UTXO dormancy reactivation, and cluster co-spending.",
+    },
+    {
+      title: "Entity & Sanctions Risk",
+      value: breakdown.entityRisk || 0,
+      max: 30,
+      color: "bg-rose-500",
+      description:
+        "Matches against OFAC sanctions registries, mixers, tumblers, and darknet entities.",
     },
   ];
 

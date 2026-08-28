@@ -73,11 +73,11 @@ const WalletCompareMatrix = () => {
       return {
         label: `${truncateAddress(w.address, 4, 4)} (${w.riskLevel})`,
         data: [
-          Math.round(((bd.transactionRisk || 0) / 25) * 100),
-          Math.round(((bd.balanceRisk || 0) / 20) * 100),
-          Math.round(((bd.patternRisk || 0) / 25) * 100),
+          Math.round(((bd.transactionRisk || 0) / 20) * 100),
+          Math.round(((bd.balanceRisk || 0) / 15) * 100),
+          Math.round(((bd.patternRisk || 0) / 20) * 100),
           Math.round(((bd.activityRisk || 0) / 15) * 100),
-          Math.round(((bd.entityRisk || 0) / 35) * 100),
+          Math.round(((bd.entityRisk || 0) / 30) * 100),
         ],
         borderColor: color.border,
         backgroundColor: color.bg,
@@ -258,7 +258,7 @@ const WalletCompareMatrix = () => {
                   <td className="py-3 px-4 text-slate-400">Transaction Velocity</td>
                   {walletsData.map((w, idx) => (
                     <td key={idx} className="py-3 px-4 text-slate-300">
-                      {w.transactionCount?.toLocaleString() || 0} TXs ({w.breakdown?.transactionRisk || 0}/25 pts)
+                      {w.transactionCount?.toLocaleString() || 0} TXs ({w.breakdown?.transactionRisk || 0}/20 pts)
                     </td>
                   ))}
                 </tr>
@@ -266,20 +266,20 @@ const WalletCompareMatrix = () => {
                   <td className="py-3 px-4 text-slate-400">Transit / Churn Pattern</td>
                   {walletsData.map((w, idx) => (
                     <td key={idx} className="py-3 px-4 text-slate-300">
-                      {w.breakdown?.patternRisk || 0}/25 pts
+                      {w.breakdown?.patternRisk || 0}/20 pts
                     </td>
                   ))}
                 </tr>
                 <tr>
                   <td className="py-3 px-4 text-slate-400">Entity & Sanctions Exposure</td>
                   {walletsData.map((w, idx) => (
-                    <td key={idx} className="py-3 px-4">
+                    <td key={idx} className="py-3 px-4 text-slate-300">
                       {w.entityTag ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                          {w.entityTag.name}
+                        <span className="text-cyan-400 font-bold">
+                          {w.entityTag.name} ({w.breakdown?.entityRisk || 0}/30 pts)
                         </span>
                       ) : (
-                        <span className="text-slate-500">Unclassified</span>
+                        `${w.breakdown?.entityRisk || 0}/30 pts`
                       )}
                     </td>
                   ))}

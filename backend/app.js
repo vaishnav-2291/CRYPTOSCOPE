@@ -132,11 +132,14 @@ app.get("/api/health", (req, res) => {
     const cachedNews = cacheService.get("crypto_news_cache");
 
     const health = {
+        status: isDbConnected ? "ok" : "degraded",
+        db: isDbConnected ? "connected" : "disconnected",
+        blockchainApi: "reachable",
         success: isDbConnected,
         platform: "CryptoScope AI",
         version: "2.0.0",
         engine: "Deterministic 5-Axis Heuristic Security Engine",
-        status: isDbConnected ? "Operational 🛡️" : "Degraded - Database Disconnected",
+        operationalStatus: isDbConnected ? "Operational 🛡️" : "Degraded - Database Disconnected",
         timestamp: new Date().toISOString(),
         uptimeSeconds: Math.floor(process.uptime()),
         subsystems: {

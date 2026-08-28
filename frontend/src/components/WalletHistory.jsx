@@ -4,76 +4,44 @@ import { useToast } from "../context/ToastContext";
 function WalletHistory() {
     const toast = useToast();
     const [history, setHistory] = useState([]);
-
     const [search, setSearch] = useState("");
-
     const [riskFilter, setRiskFilter] = useState("All");
-
     const [loading, setLoading] = useState(false);
-
     const [selectedWallet, setSelectedWallet] = useState(null);
-
-
-
+    const [isDbUnavailable, setIsDbUnavailable] = useState(false);
 
     useEffect(() => {
-
         fetchHistory();
-
     }, []);
 
-
-
-
-
     const fetchHistory = async () => {
-
-
         try {
-
-
             setLoading(true);
-
-
-
-            const response = await fetch(
-
-                "/api/wallet/history/all",
-
-                {
-
-                    headers: {
-
-                        Authorization: localStorage.getItem("token")
-
-                    }
-
+            setIsDbUnavailable(false);
+            const response = await fetch("/api/wallet/history/all", {
+                headers: {
+                    Authorization: localStorage.getItem("token")
                 }
+            });
 
-            );
-
-
-
-            const data = await response.json();
-
-
-
-            if(data.success){
-
-                setHistory(data.history);
-
+            if (response.status === 503) {
+                setIsDbUnavailable(true);
+                return;
             }
 
-
-
-
-        } catch(error){
-
-
-            console.error(error);
-
-
+            const data = await response.json();
+            if (data.success) {
+                setHistory(data.history || []);
+            } else if (data.dbUnavailable) {
+                setIsDbUnavailable(true);
+            }
+        } catch (error) {
+            console.error("Wallet history fetch error:", error);
+            setIsDbUnavailable(true);
+        } finally {
+            setLoading(false);
         }
+    };
 
         finally{
 
@@ -155,10 +123,29 @@ function WalletHistory() {
 
 
                 <h2 className="text-3xl font-bold text-white">
-
                     Wallet Scan History
-
                 </h2>
+            </div>
+
+            {isDbUnavailable && (
+                <div className="mb-6 p-4 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 flex items-center justify-between text-sm backdrop-blur-md">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">⚠️</span>
+                        <div>
+                            <p className="font-semibold text-amber-200">Database Service Unavailable</p>
+                            <p className="text-xs text-amber-400/80">Historical scan records cannot be retrieved from persistence. Wallet analysis is operating in live blockchain mode.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={fetchHistory}
+                        className="px-3.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg text-xs font-semibold text-amber-200 transition-colors"
+                    >
+                        Retry Connection
+                    </button>
+                </div>
+            )}
+
+            <div className="flex flex-col md:flex-row md:justify-between gap-5 mb-8">
 
 
 

@@ -355,11 +355,11 @@ const WalletAnalyzer = ({ initialAddress = "" }) => {
                   <RiskRadarChart breakdown={breakdown} riskScore={walletResult.riskScore} />
 
                   <div className="grid grid-cols-5 gap-1 text-[10px] font-mono text-center text-slate-400 pt-2 border-t border-white/5">
-                    <div>TX: {breakdown.transactionRisk || 0}/25</div>
-                    <div>Bal: {breakdown.balanceRisk || 0}/20</div>
-                    <div>Pat: {breakdown.patternRisk || 0}/25</div>
+                    <div>TX: {breakdown.transactionRisk || 0}/20</div>
+                    <div>Bal: {breakdown.balanceRisk || 0}/15</div>
+                    <div>Pat: {breakdown.patternRisk || 0}/20</div>
                     <div>Act: {breakdown.activityRisk || 0}/15</div>
-                    <div>Ent: {breakdown.entityRisk || 0}/35</div>
+                    <div>Ent: {breakdown.entityRisk || 0}/30</div>
                   </div>
                 </div>
               </div>
@@ -367,11 +367,11 @@ const WalletAnalyzer = ({ initialAddress = "" }) => {
               {/* 5D Score Breakdown Progress Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[
-                  { title: "Transaction Velocity", pts: breakdown.transactionRisk || 0, max: 25, color: "text-cyan-400", bar: "bg-cyan-500", desc: "Volume & burst rate" },
-                  { title: "Balance Exposure", pts: breakdown.balanceRisk || 0, max: 20, color: "text-amber-400", bar: "bg-amber-500", desc: "Whale holdings ratio" },
-                  { title: "Transit Pattern", pts: breakdown.patternRisk || 0, max: 25, color: "text-purple-400", bar: "bg-purple-500", desc: "Pass-through 1:1 ratio" },
+                  { title: "Transaction Velocity", pts: breakdown.transactionRisk || 0, max: 20, color: "text-cyan-400", bar: "bg-cyan-500", desc: "Volume & burst rate" },
+                  { title: "Balance Exposure", pts: breakdown.balanceRisk || 0, max: 15, color: "text-amber-400", bar: "bg-amber-500", desc: "Whale holdings ratio" },
+                  { title: "Transit Pattern", pts: breakdown.patternRisk || 0, max: 20, color: "text-purple-400", bar: "bg-purple-500", desc: "Pass-through 1:1 ratio" },
                   { title: "Activity & Age", pts: breakdown.activityRisk || 0, max: 15, color: "text-blue-400", bar: "bg-blue-500", desc: "Burst reactivation" },
-                  { title: "Entity & Sanctions", pts: breakdown.entityRisk || 0, max: 35, color: "text-rose-400", bar: "bg-rose-500", desc: "Mixer, threat & OFAC flags" },
+                  { title: "Entity & Sanctions", pts: breakdown.entityRisk || 0, max: 30, color: "text-rose-400", bar: "bg-rose-500", desc: "Mixer, threat & OFAC flags" },
                 ].map((item, idx) => (
                   <div key={idx} className="p-3.5 rounded-xl bg-slate-950/70 border border-white/5 space-y-1.5 shadow-inner">
                     <div className="flex items-center justify-between text-xs">

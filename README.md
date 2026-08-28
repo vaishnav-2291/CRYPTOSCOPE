@@ -32,13 +32,13 @@ graph TD
 ## 🌟 Core Features
 
 ### 🔍 1. Multi-Dimensional Wallet Deep-Dive
-- **Deterministic 5-Axis Risk Engine**: 100% explainable, rule-based heuristic scoring across:
-  1. *Transaction Velocity Risk* (Max 25 pts)
-  2. *Balance Concentration Risk* (Max 20 pts)
-  3. *Fund Churn / Transit Pattern Risk* (Max 25 pts)
-  4. *Activity & Temporal Consistency Risk* (Max 15 pts)
-  5. *Entity & Sanctions Exposure Risk* (Max 35 pts)
-- **Animated Speedometer Risk Gauge**: Radial SVG meter with 0–100 score and Low/Medium/High classification.
+- **Deterministic 5-Axis Risk Engine**: 100% explainable, rule-based heuristic scoring calibrated to naturally sum to exactly 100 points:
+  1. *Transaction Velocity Risk* (Max 20 pts) — Evaluates lifetime TX volume, burst rates, and priority fee urgency.
+  2. *Balance Concentration Risk* (Max 15 pts) — Evaluates capital concentration, mega-whale reserve status, and fund drain ratios.
+  3. *Fund Churn / Transit Pattern Risk* (Max 20 pts) — Analyzes pass-through turnover, 1:1 transit turnover, and unidirectional flow imbalance.
+  4. *Activity & Temporal Consistency Risk* (Max 15 pts) — Inspects wallet age, activity intensity, and common-input cluster co-spending.
+  5. *Entity & Sanctions Exposure Risk* (Max 30 pts) — Flags OFAC SDN designated targets, darknet tumblers, CoinJoin coordinators, and direct mixer counterparties.
+- **Animated Speedometer Risk Gauge**: Radial SVG meter with 0–100 score and unified Low (<40) / Medium (40-69) / High (>=70) classification.
 - **5-Axis Radar Chart**: Normalized exposure polygon comparing risk vectors.
 - **Explainable Security Assessment**: Transparent rule audit detailing active rule IDs (e.g. `RULE-PAT-01`), exact metric thresholds, severity badges, and remediation advice.
 
@@ -108,25 +108,38 @@ Start the backend server:
 ```bash
 npm run dev
 # or: node server.js
-```
+### 3. Execution & Port Modes
 
-### 3. Frontend Setup
+CryptoScope AI supports two operational modes:
+
+#### A. Integrated Production Serving (Port 3000)
+The Express backend automatically serves both the `/api/*` endpoints and the pre-built React production bundle from `frontend/dist`.
 ```bash
-cd frontend
-npm install
-npm run dev
+# Build frontend and start Express server:
+npm run build --prefix frontend
+node backend/server.js
+# Access app at: http://localhost:3000
 ```
 
-Visit the app at `http://localhost:5173`.
+#### B. Hot-Reload Development Mode (Port 5173 / 3000)
+Run the Vite development server for live front-end hot-module replacement (HMR), with automatic `/api` proxying to Express on `:3000`:
+```bash
+# Terminal 1 (Backend API):
+npm run dev --prefix backend
+
+# Terminal 2 (Vite HMR UI):
+npm run dev --prefix frontend
+# Access dev UI at: http://localhost:5173
+```
 
 ---
 
 ## 🧪 Running Tests
 
-CryptoScope AI includes automated unit tests for the deterministic risk engine and Bitcoin address format validators:
+CryptoScope AI includes automated unit and integration tests covering the deterministic risk engine, scan history deduplication, and risk threshold consistency:
 
 ```bash
-# From the project root:
+# Run complete test suite:
 node --test backend/tests/*.test.js
 ```
 
@@ -136,8 +149,10 @@ node --test backend/tests/*.test.js
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
+| `GET` | `/api/health` | Comprehensive subsystem status & DB connectivity | No |
 | `GET` | `/api/wallet/:address` | Full single wallet analysis & risk score | Optional |
 | `POST` | `/api/wallet/batch-scan` | Batch scan up to 20 addresses in parallel | Optional |
+| `GET` | `/api/wallet/history/all` | Deduplicated scan history records | Optional |
 | `GET` | `/api/wallet/:address/transactions` | Paginated transactions (`after_txid`) | No |
 | `GET` | `/api/wallet/:address/graph` | Node-link fund flow graph data | No |
 | `GET` | `/api/wallet/:address/trend` | Historical risk score progression | No |
@@ -145,6 +160,7 @@ node --test backend/tests/*.test.js
 | `GET` | `/api/wallet/watchlist` | Get user's pinned watchlist | Yes |
 | `POST` | `/api/wallet/watchlist` | Add address to watchlist | Yes |
 | `POST` | `/api/wallet/watchlist/rescan` | Re-scan watchlist & compute score deltas | Yes |
+| `POST` | `/api/wallet/alerts/simulate` | Simulate real-time SOC security incident | Optional |
 | `POST` | `/api/auth/register` | Register new user / admin account | No |
 | `POST` | `/api/auth/login` | Login and obtain JWT tokens | No |
 | `POST` | `/api/auth/refresh` | Refresh access token using refresh token | No |

@@ -77,7 +77,7 @@ const KNOWN_ENTITIES = {
         description: "Wasabi Wallet 2.0 WabiSabi CoinJoin mixing pool round coordinator.",
     },
     "12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX": {
-        name: "Blender.io Sanitized Pool",
+        name: "ChipMixer / Blender Sanitized Pool",
         category: "Sanctioned Tumbler",
         riskWeight: 95,
         icon: "⛔",
@@ -98,7 +98,16 @@ const KNOWN_ENTITIES = {
     // -------------------------------------------------------------
     // Ransomware, Darknet & Exploits (Critical Risk Flags)
     // -------------------------------------------------------------
-    "12t9YDPgwJNPPJa8NVwKEC3gahP4yghN6e": {
+    "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX": {
+        name: "Lazarus Group (APT38)",
+        category: "State-Sponsored APT",
+        riskWeight: 100,
+        icon: "☠️",
+        isSanctioned: true,
+        isMixer: false,
+        description: "Official US Treasury OFAC Specially Designated National (SDN) Bitcoin address tied to Lazarus Group cyber operations.",
+    },
+    "12t9YDPgwueZ9NyMgw519p7AA8isjr6SMw": {
         name: "WannaCry Ransomware Treasury",
         category: "Ransomware / Threat Actor",
         riskWeight: 100,
@@ -106,6 +115,15 @@ const KNOWN_ENTITIES = {
         isSanctioned: true,
         isMixer: false,
         description: "Primary Bitcoin ransom collection address for the 2017 WannaCry global cyberattack.",
+    },
+    "13AM4VW2dhxYgXeQepoHkHSQuy6NgaEb94": {
+        name: "WannaCry Collector Node #2",
+        category: "Ransomware / Threat Actor",
+        riskWeight: 100,
+        icon: "☠️",
+        isSanctioned: true,
+        isMixer: false,
+        description: "Hardcoded secondary collection address in the 2017 WannaCry ransomware binary.",
     },
     "115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn": {
         name: "WannaCry Secondary Collector",
@@ -133,6 +151,15 @@ const KNOWN_ENTITIES = {
         isSanctioned: false,
         isMixer: false,
         description: "US Department of Justice / Marshals seized assets from the Silk Road takedown.",
+    },
+    "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97": {
+        name: "Euler & Nomad Cross-Chain Exploiter",
+        category: "Flash-Loan Exploits",
+        riskWeight: 95,
+        icon: "🚨",
+        isSanctioned: true,
+        isMixer: false,
+        description: "Multi-signature smart contract bridge exploit liquidity drainer address.",
     },
 
     // -------------------------------------------------------------

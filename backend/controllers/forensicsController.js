@@ -279,6 +279,7 @@ exports.getFullForensicAudit = async (req, res) => {
                 feeUrgencyLevel: feeUrgency.urgencyLevel || "NORMAL",
                 sanctionsExposure: sanctions.exposureLevel || "CLEAN",
                 overallRiskScore: explainability.riskScore || 0,
+                overallRiskLevel: explainability.riskLevel || (explainability.riskScore >= 70 ? "High" : explainability.riskScore >= 40 ? "Medium" : "Low"),
                 propagationExposureScore: propagation.sanctionProximityScore || 0,
                 privacyGrade: reuse.privacyGrade || "A",
                 mixerExposure: mixer.mixerExposureLevel || "NONE",

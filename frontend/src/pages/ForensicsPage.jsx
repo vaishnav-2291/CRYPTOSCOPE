@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { forensicsApi } from "../services/forensicsApi";
+import { getRiskTheme, getRiskLevel } from "../utils/constants";
 
 // Round 1 Components
 import DustingAttackCard from "../components/forensics/DustingAttackCard";
@@ -53,7 +54,7 @@ import {
 const QUICK_TARGETS = [
   { label: "Binance Cold Storage", address: "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo" },
   { label: "Satoshi Genesis", address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" },
-  { label: "OFAC Lazarus Flagged", address: "12t9YDPgwJNPPJa8NVwKEC3gahP4yghN6e" },
+  { label: "OFAC Lazarus Flagged", address: "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX" },
 ];
 
 export const ForensicsPage = () => {
@@ -210,12 +211,8 @@ export const ForensicsPage = () => {
 
   const topFindings = getTopFindings();
   const riskScore = summary.overallRiskScore || 0;
-  const riskColor =
-    riskScore >= 70
-      ? "text-red-400 border-red-500/40 bg-red-500/10"
-      : riskScore >= 40
-      ? "text-amber-400 border-amber-500/40 bg-amber-500/10"
-      : "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
+  const riskLevel = summary.overallRiskLevel || getRiskLevel(riskScore);
+  const theme = getRiskTheme(riskLevel);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
@@ -313,10 +310,10 @@ export const ForensicsPage = () => {
 
             {/* Risk Gauge Header */}
             <div className="flex items-center gap-3 self-start sm:self-auto">
-              <div className={`px-3.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-2 ${riskColor}`}>
+              <div className={`px-3.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-2 ${theme.badge}`}>
                 <span className="text-[10px] uppercase tracking-wider text-slate-300">Composite Risk:</span>
                 <span className="text-sm font-extrabold">{riskScore} / 100</span>
-                <span className="text-[10px] uppercase">({summary.overallRiskLevel || "LOW"})</span>
+                <span className="text-[10px] uppercase">({riskLevel.toUpperCase()})</span>
               </div>
             </div>
           </div>

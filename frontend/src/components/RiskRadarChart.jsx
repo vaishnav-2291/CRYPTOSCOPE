@@ -21,27 +21,27 @@ ChartJS.register(
 );
 
 const RiskRadarChart = ({ breakdown = {}, riskScore = 0 }) => {
-  const transactionRisk = breakdown.transactionRisk || 0; // max 25
-  const balanceRisk = breakdown.balanceRisk || 0;         // max 20
-  const patternRisk = breakdown.patternRisk || 0;         // max 25
+  const transactionRisk = breakdown.transactionRisk || 0; // max 20
+  const balanceRisk = breakdown.balanceRisk || 0;         // max 15
+  const patternRisk = breakdown.patternRisk || 0;         // max 20
   const activityRisk = breakdown.activityRisk || 0;       // max 15
-  const entityRisk = breakdown.entityRisk || 0;           // max 35
+  const entityRisk = breakdown.entityRisk || 0;           // max 30
 
   // Normalize all 5 dimensions to a 0-100% scale for balanced radar representation
   const normalizedData = [
-    Math.round((transactionRisk / 25) * 100),
-    Math.round((balanceRisk / 20) * 100),
-    Math.round((patternRisk / 25) * 100),
+    Math.round((transactionRisk / 20) * 100),
+    Math.round((balanceRisk / 15) * 100),
+    Math.round((patternRisk / 20) * 100),
     Math.round((activityRisk / 15) * 100),
-    Math.round((entityRisk / 35) * 100),
+    Math.round((entityRisk / 30) * 100),
   ];
 
   const rawValues = [
-    `${transactionRisk}/25 pts`,
-    `${balanceRisk}/20 pts`,
-    `${patternRisk}/25 pts`,
+    `${transactionRisk}/20 pts`,
+    `${balanceRisk}/15 pts`,
+    `${patternRisk}/20 pts`,
     `${activityRisk}/15 pts`,
-    `${entityRisk}/35 pts`,
+    `${entityRisk}/30 pts`,
   ];
 
   const isHighRisk = riskScore >= 70;

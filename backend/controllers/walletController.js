@@ -97,7 +97,7 @@ exports.fetchWallet = async (req, res) => {
         const savedScan = await Wallet.findOneAndUpdate(
             { user: req.user.id, address: data.address },
             { $set: scanPayload },
-            { upsert: true, new: true, returnDocument: "after", setDefaultsOnInsert: true }
+            { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
         );
 
         // 4. If High Risk / Exploit / OFAC Triggered, persist SecurityAlert
@@ -235,7 +235,7 @@ exports.batchScan = async (req, res) => {
                     const scan = await Wallet.findOneAndUpdate(
                         { user: req.user.id, address: addr },
                         { $set: scanPayload },
-                        { upsert: true, new: true, returnDocument: "after", setDefaultsOnInsert: true }
+                        { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
                     );
 
                     return {
@@ -842,6 +842,7 @@ exports.simulateSecurityAlert = async (req, res) => {
             status: "AUTO-FLAGGED",
             amount: "5.45 BTC",
             details: "Mempool detector captured synthetic anomalous burst transfer pattern targeting unverified counterparty.",
+            isSimulated: true,
         });
 
         await alertDoc.save();
