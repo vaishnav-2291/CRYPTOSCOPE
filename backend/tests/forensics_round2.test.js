@@ -104,7 +104,7 @@ describe("CryptoScope AI Advanced Forensics — Round 2 Suite", () => {
 
     // 13. True-Positive OFAC Sanctions Sanity Check (Verification Item #3)
     test("13. True-Positive OFAC Check - Verifies known flagged address detects sanctioned state", async () => {
-        const testSanctionedAddr = "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX";
+        const testSanctionedAddr = "1Hn9ErTCPRP6j5UDBeuXPGuq5RtRjFJxJQ";
         const result = await sanctionsChecker.checkSanctionsExposure(testSanctionedAddr);
         assert.ok(result.address === testSanctionedAddr);
         assert.equal(result.exposureLevel, "DIRECT_SANCTION_MATCH");

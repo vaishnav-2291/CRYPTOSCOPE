@@ -23,21 +23,26 @@ import {
 
 const THREAT_ENTITIES = [
   {
-    // Source: US Treasury OFAC SDN List (Lazarus Group / North Korea Cyber Warfare)
+    // Source: FBI Press Release - "FBI Identifies Lazarus Group Cyber Actors as Responsible for Theft of $41 Million from Stake.com" (Sept 7, 2023)
+    // URL: https://www.fbi.gov/news/press-releases/fbi-identifies-lazarus-group-cyber-actors-as-responsible-for-theft-of-41-million-from-stakecom
+    // Dataset: OpenSanctions US FBI Lazarus Group Crypto Wallets (fbi-lazarus-3d52db0cd5be811f997a3c478bc7548690ed85a2)
+    // Block Explorer: https://mempool.space/address/bc1qqydp9muxtnxyet3ryfqc467wjtm23f0r7eh5aa
     name: "Lazarus Group (APT38)",
     category: "State-Sponsored APT",
-    address: "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX",
+    address: "bc1qqydp9muxtnxyet3ryfqc467wjtm23f0r7eh5aa",
     riskScore: 98,
     riskLevel: "High",
     sanctioned: true,
-    description: "North Korean state-sponsored cyberwarfare group linked to Ronin Bridge, Harmony Horizon, and high-velocity ransom laundering.",
-    tags: ["OFAC Sanctioned", "Bridge Exploit", "State Actor"],
-    estimatedLoot: "624,000 ETH / $1.2B+",
-    lastActive: "2 hours ago",
+    description: "North Korean state-sponsored cyberwarfare group (APT38 / TraderTraitor) FBI-attributed native SegWit Bitcoin address for the $41M Stake.com heist.",
+    tags: ["FBI Attributed", "Stake.com Heist", "State Actor"],
+    estimatedLoot: "$41M+ (Stake.com)",
+    lastActive: "Sept 2023",
     threatType: "CRITICAL",
   },
   {
-    // Source: WannaCry May 2017 Ransomware binary primary extortion collection address
+    // Source: US-CERT Alert TA17-132A / WannaCry May 2017 Ransomware binary primary collector
+    // URL: https://www.bleepingcomputer.com/news/security/wannacry-ransom-payments-monitored-live-by-twitter-bots/
+    // Block Explorer: https://mempool.space/address/12t9YDPgwueZ9NyMgw519p7AA8isjr6SMw
     name: "WannaCry Ransomware Treasury",
     category: "Ransomware Extortion",
     address: "12t9YDPgwueZ9NyMgw519p7AA8isjr6SMw",
@@ -51,21 +56,25 @@ const THREAT_ENTITIES = [
     threatType: "CRITICAL",
   },
   {
-    // Source: Wasabi Wallet 2.0 WabiSabi CoinJoin Coordinator on-chain pool
-    name: "Wasabi CoinJoin Privacy Pool",
+    // Source: US Treasury OFAC Designation of Sinbad.io Virtual Currency Mixer (Nov 29, 2023)
+    // URL: https://home.treasury.gov/news/press-releases/jy1935
+    // Block Explorer: https://mempool.space/address/bc1qq7p0es3dv5hcynjjf40f2xjjr6qp5py47d2f6n847vduuq9gvnyq7y9ecd
+    name: "Sinbad.io Mixer / Laundering Cluster",
     category: "CoinJoin Mixers",
-    address: "bc1qa5wkgaew2dkv56kfvj49j0av5nmar2m78mtgggh3txac90gaxuvsgg0wqj",
-    riskScore: 82,
+    address: "bc1qq7p0es3dv5hcynjjf40f2xjjr6qp5py47d2f6n847vduuq9gvnyq7y9ecd",
+    riskScore: 95,
     riskLevel: "High",
-    sanctioned: false,
-    description: "Zero-knowledge decentralized CoinJoin mixing coordinator utilized for UTXO entropy stripping and peel chain obfuscation.",
-    tags: ["CoinJoin", "Anonymity Pool", "High Churn"],
-    estimatedLoot: "14,800+ BTC Churned",
-    lastActive: "14 mins ago",
-    threatType: "HIGH",
+    sanctioned: true,
+    description: "OFAC-sanctioned virtual currency tumbler infrastructure and primary money-laundering tool utilized by state-sponsored cyber actors.",
+    tags: ["OFAC Sanctioned", "Darknet Mixer", "Lazarus Nexus"],
+    estimatedLoot: "$100M+ Laundered",
+    lastActive: "Seized by FBI",
+    threatType: "CRITICAL",
   },
   {
-    // Source: DOJ & German BKA Seizure of ChipMixer / Blender tumbler cluster
+    // Source: US Department of Justice & German BKA International ChipMixer Takedown (Mar 15, 2023)
+    // URL: https://www.justice.gov/opa/pr/justice-department-investigation-leads-takedown-darknet-cryptocurrency-mixer-responsible
+    // Block Explorer: https://mempool.space/address/12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX
     name: "ChipMixer Obfuscation Cluster",
     category: "CoinJoin Mixers",
     address: "12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX",
@@ -79,21 +88,25 @@ const THREAT_ENTITIES = [
     threatType: "HIGH",
   },
   {
-    // Source: US Marshals Service (USMS) / FBI custody of Silk Road seized assets
+    // Source: US Department of Justice Civil Forfeiture Complaint on Silk Road 69,370 BTC (Nov 5, 2020)
+    // URL: https://www.justice.gov/opa/pr/united-states-files-civil-action-forfeit-estimated-1-billion-cryptocurrency-linked-silk-road
+    // Block Explorer: https://mempool.space/address/1HQ3Go3ggs8pFnXuHVHRytPCq5fGG8Hbhx
     name: "Silk Road Darknet Seizure Vault",
     category: "Darknet Markets",
-    address: "1HQ3Go3ggjeWZ1bNgnqhMKNst5hWnuGEF1",
+    address: "1HQ3Go3ggs8pFnXuHVHRytPCq5fGG8Hbhx",
     riskScore: 78,
     riskLevel: "High",
     sanctioned: true,
-    description: "Historical darknet contraband marketplace custody wallets monitored for administrative government liquidation transfers.",
+    description: "Historical darknet contraband marketplace custody wallet containing 69,370 BTC seized by the US Marshals / FBI from Individual X.",
     tags: ["Darknet Market", "DOJ Custody", "Historical"],
     estimatedLoot: "69,370 BTC",
     lastActive: "3 days ago",
     threatType: "MEDIUM",
   },
   {
-    // Source: Euler Finance & Nomad Cross-Chain Bridge Drainer address cluster
+    // Source: Chainalysis & Elliptic Incident Response on Euler & Nomad Bridge Exploits (Mar 2023)
+    // URL: https://www.elliptic.co/blog/euler-finance-hack
+    // Block Explorer: https://mempool.space/address/bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97
     name: "Euler & Nomad Cross-Chain Exploiter",
     category: "Flash-Loan Exploits",
     address: "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97",

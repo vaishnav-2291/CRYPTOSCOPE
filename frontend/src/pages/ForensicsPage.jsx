@@ -54,7 +54,7 @@ import {
 const QUICK_TARGETS = [
   { label: "Binance Cold Storage", address: "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo" },
   { label: "Satoshi Genesis", address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" },
-  { label: "OFAC Lazarus Flagged", address: "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX" },
+  { label: "FBI Lazarus Flagged", address: "bc1qqydp9muxtnxyet3ryfqc467wjtm23f0r7eh5aa" },
 ];
 
 export const ForensicsPage = () => {

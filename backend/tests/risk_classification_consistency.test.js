@@ -104,19 +104,19 @@ test("CryptoScope AI — Wallet Risk Classification & Threshold Consistency Suit
     // 5. Score 70+ -> correct label (High)
     await t.test("5. Score 70+ -> correct label (High)", () => {
         const data = {
-            address: "1HighRiskWallet444444444444444444",
+            address: "bc1qq7p0es3dv5hcynjjf40f2xjjr6qp5py47d2f6n847vduuq9gvnyq7y9ecd",
             balance: 1200.0,
             totalReceived: 5000.0,
             totalSent: 4900.0,
             n_tx: 12000,
             transactions: [],
             entityTag: {
-                name: "Wasabi CoinJoin Coordinator",
+                name: "Sinbad.io Mixer / Laundering Cluster",
                 category: "Privacy / CoinJoin Mixer",
-                riskWeight: 85,
-                isSanctioned: false,
+                riskWeight: 95,
+                isSanctioned: true,
                 isMixer: true,
-                description: "Wasabi mixing coordinator.",
+                description: "OFAC-sanctioned tumbler.",
             },
         };
         const result = calculateRisk(data);

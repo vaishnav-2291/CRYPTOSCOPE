@@ -6,7 +6,7 @@ async function runVerification() {
 
     // 1. True-Positive OFAC Check
     console.log("\n[Check 1] True-Positive OFAC Sanctions Cross-Check:");
-    const sanctionedAddress = "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX"; // Known Lazarus / OFAC designated BTC address
+    const sanctionedAddress = "1Hn9ErTCPRP6j5UDBeuXPGuq5RtRjFJxJQ"; // Genuine Lazarus Group OFAC SDN designated BTC address
     const cleanAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";      // Satoshi Genesis Address
 
     const flaggedRes = await sanctionsChecker.checkSanctionsExposure(sanctionedAddress);
