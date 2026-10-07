@@ -92,7 +92,7 @@ function FeaturesSection() {
       >
 
 
-        🚀 Why CryptoScope AI?
+        🚀 Why CryptoLens AI?
 
 
       </h2>

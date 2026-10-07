@@ -294,7 +294,7 @@ export const CommandPalette = ({ isOpen, onClose }) => {
                 <span>Navigate: <kbd className="px-1 py-0.2 bg-slate-900 border border-slate-700 rounded">↑</kbd> <kbd className="px-1 py-0.2 bg-slate-900 border border-slate-700 rounded">↓</kbd></span>
                 <span>Select: <kbd className="px-1 py-0.2 bg-slate-900 border border-slate-700 rounded">↵</kbd></span>
               </div>
-              <span className="text-cyan-400">CryptoScope AI Command Hub</span>
+              <span className="text-cyan-400">CryptoLens AI Command Hub</span>
             </div>
           </motion.div>
         </div>

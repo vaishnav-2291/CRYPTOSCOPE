@@ -270,7 +270,7 @@ const SecurityReportCard = ({
         <Info className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
         <div>
           <strong className="text-cyan-300 font-medium">Explainable Framework Transparency:</strong>{" "}
-          CryptoScope AI uses a transparent, deterministic rule-based heuristic scoring engine across 5 dimensions: Transaction Velocity, Balance Concentration, Fund Churn Patterns, Temporal Consistency, and Sanction/Mixer Intelligence. No opaque machine learning approximations are used in compliance scoring.
+          CryptoLens AI uses a transparent, deterministic rule-based heuristic scoring engine across 5 dimensions: Transaction Velocity, Balance Concentration, Fund Churn Patterns, Temporal Consistency, and Sanction/Mixer Intelligence. No opaque machine learning approximations are used in compliance scoring.
         </div>
       </div>
     </div>

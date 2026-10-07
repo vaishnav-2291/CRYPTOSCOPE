@@ -1,8 +1,8 @@
-# 🛡️ CryptoScope AI (v2.0)
+# 🛡️ CryptoLens AI (v2.0)
 
-### Enterprise Blockchain Intelligence & Deterministic Wallet Risk Platform
+### See Deeper. Trade Smarter. Stay Ahead.
 
-**CryptoScope AI** is a portfolio-grade Bitcoin blockchain risk analysis platform designed with a dark, cyber-fintech terminal aesthetic. It provides deterministic 5-axis heuristic risk scoring, interactive fund flow network graphing, multi-address batch scanning, known-entity intelligence, common-input clustering heuristics, and automated watchlist monitoring.
+**CryptoLens AI** is a portfolio-grade Bitcoin blockchain risk analysis platform designed with a dark, cyber-fintech terminal aesthetic. It provides deterministic 5-axis heuristic risk scoring, interactive fund flow network graphing, multi-address batch scanning, known-entity intelligence, common-input clustering heuristics, and automated watchlist monitoring.
 
 ---
 
@@ -110,7 +110,7 @@ npm run dev
 # or: node server.js
 ### 3. Execution & Port Modes
 
-CryptoScope AI supports two operational modes:
+CryptoLens AI supports two operational modes:
 
 #### A. Integrated Production Serving (Port 3000)
 The Express backend automatically serves both the `/api/*` endpoints and the pre-built React production bundle from `frontend/dist`.
@@ -136,7 +136,7 @@ npm run dev --prefix frontend
 
 ## 🧪 Running Tests
 
-CryptoScope AI includes automated unit and integration tests covering the deterministic risk engine, scan history deduplication, and risk threshold consistency:
+CryptoLens AI includes automated unit and integration tests covering the deterministic risk engine, scan history deduplication, and risk threshold consistency:
 
 ```bash
 # Run complete test suite:
@@ -170,4 +170,4 @@ node --test backend/tests/*.test.js
 ---
 
 ## ⚖️ License
-ISC License © 2026 CryptoScope AI.
+ISC License © 2026 CryptoLens AI.

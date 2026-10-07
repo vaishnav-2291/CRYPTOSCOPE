@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Live Bitcoin Dusting-Attack Detector
+ * CryptoLens AI — Live Bitcoin Dusting-Attack Detector
  * 
  * Detects unsolicited micro-deposits (<= 546 sat standard economic dust threshold)
  * and multi-destination fan-out dusting campaigns on Bitcoin addresses using live on-chain data.
@@ -30,7 +30,7 @@ class DustingDetector {
             timeout: 6000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-Forensics/2.0",
+                "User-Agent": "CryptoLens-AI-Forensics/2.0",
             },
         });
 
@@ -39,7 +39,7 @@ class DustingDetector {
             timeout: 6000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-Forensics/2.0",
+                "User-Agent": "CryptoLens-AI-Forensics/2.0",
             },
         });
     }

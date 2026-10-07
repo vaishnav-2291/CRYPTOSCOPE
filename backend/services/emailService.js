@@ -63,7 +63,7 @@ async function verifyEmailConfig() {
 }
 
 /**
- * Generate Responsive HTML Email Template for CRYPTOSCOPE AI Password Reset OTP
+ * Generate Responsive HTML Email Template for CRYPTOLENS AI Password Reset OTP
  */
 function generateOtpEmailHtml({ name, otp }) {
     const displayName = name ? name.trim() : "Analyst";
@@ -73,7 +73,7 @@ function generateOtpEmailHtml({ name, otp }) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRYPTOSCOPE AI — Password Reset OTP</title>
+  <title>CRYPTOLENS AI — Password Reset OTP</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #050811; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #050811; padding: 40px 15px;">
@@ -90,7 +90,7 @@ function generateOtpEmailHtml({ name, otp }) {
                   <td>
                     <div style="display: inline-block; padding: 8px 12px; border-radius: 10px; background-color: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.4);">
                       <span style="font-size: 18px; line-height: 1;">🛡️</span>
-                      <span style="font-size: 14px; font-weight: 800; color: #00f2fe; letter-spacing: 0.5px; margin-left: 6px;">CRYPTOSCOPE AI</span>
+                      <span style="font-size: 14px; font-weight: 800; color: #00f2fe; letter-spacing: 0.5px; margin-left: 6px;">CRYPTOLENS AI</span>
                     </div>
                   </td>
                   <td align="right">
@@ -113,7 +113,7 @@ function generateOtpEmailHtml({ name, otp }) {
               </p>
               
               <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
-                We received a request to reset your password for CRYPTOSCOPE AI. Use the 6-digit verification code below to authorize your password reset:
+                We received a request to reset your password for CRYPTOLENS AI. Use the 6-digit verification code below to authorize your password reset:
               </p>
 
               <!-- OTP Code Display Card -->
@@ -135,7 +135,7 @@ function generateOtpEmailHtml({ name, otp }) {
                       <strong style="color: #00f2fe;">⚠️ Security Guidelines:</strong><br>
                       &bull; This OTP is valid for exactly <strong>10 minutes</strong>.<br>
                       &bull; If you did not request this password reset, please ignore this email; your account credentials remain safe.<br>
-                      &bull; Never share this one-time code with anyone, including CRYPTOSCOPE staff.
+                      &bull; Never share this one-time code with anyone, including CRYPTOLENS staff.
                     </td>
                   </tr>
                 </table>
@@ -147,7 +147,7 @@ function generateOtpEmailHtml({ name, otp }) {
           <tr>
             <td style="padding: 24px 40px; background-color: #080c14; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center;">
               <p style="margin: 0 0 6px 0; font-size: 12px; color: #64748b;">
-                CRYPTOSCOPE AI &bull; Blockchain Risk Intelligence & Telemetry Engine
+                CRYPTOLENS AI &bull; Blockchain Risk Intelligence & Telemetry Engine
               </p>
               <p style="margin: 0; font-size: 11px; color: #475569;">
                 Automated security notification &bull; Please do not reply to this email
@@ -163,16 +163,16 @@ function generateOtpEmailHtml({ name, otp }) {
 }
 
 /**
- * Generate Plaintext Email Fallback for CRYPTOSCOPE AI Password Reset OTP
+ * Generate Plaintext Email Fallback for CRYPTOLENS AI Password Reset OTP
  */
 function generateOtpEmailText({ name, otp }) {
     const displayName = name ? name.trim() : "Analyst";
 
-    return `CRYPTOSCOPE AI — Password Reset OTP
+    return `CRYPTOLENS AI — Password Reset OTP
 
 Hello ${displayName},
 
-We received a request to reset the password for your CRYPTOSCOPE AI account.
+We received a request to reset the password for your CRYPTOLENS AI account.
 
 Your 6-digit Verification OTP:
 ${otp}
@@ -183,7 +183,7 @@ SECURITY NOTICES:
 - Never share this one-time passcode with anyone.
 
 --
-CRYPTOSCOPE AI Security Team
+CRYPTOLENS AI Security Team
 Blockchain Risk Intelligence & Security Telemetry`;
 }
 
@@ -203,12 +203,12 @@ async function sendPasswordResetOtpEmail({ to, name, otp }) {
 
     try {
         const transporter = getTransporter();
-        const fromAddress = process.env.EMAIL_FROM || `CRYPTOSCOPE AI <${process.env.SMTP_USER}>`;
+        const fromAddress = process.env.EMAIL_FROM || `CRYPTOLENS AI <${process.env.SMTP_USER}>`;
 
         const mailOptions = {
             from: fromAddress,
             to,
-            subject: "CRYPTOSCOPE AI — Password Reset OTP",
+            subject: "CRYPTOLENS AI — Password Reset OTP",
             text: generateOtpEmailText({ name, otp }),
             html: generateOtpEmailHtml({ name, otp }),
         };

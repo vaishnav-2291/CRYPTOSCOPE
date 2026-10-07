@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Address Clustering Engine (Common-Input-Ownership Heuristic)
+ * CryptoLens AI — Address Clustering Engine (Common-Input-Ownership Heuristic)
  * 
  * Implements the foundational blockchain forensics heuristic:
  * In any multi-input transaction (vin >= 2), all input addresses are inferred
@@ -24,7 +24,7 @@ class ClusterEngine {
             timeout: 7000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-Clustering/2.0",
+                "User-Agent": "CryptoLens-AI-Clustering/2.0",
             },
         });
 
@@ -33,7 +33,7 @@ class ClusterEngine {
             timeout: 7000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-Clustering/2.0",
+                "User-Agent": "CryptoLens-AI-Clustering/2.0",
             },
         });
     }

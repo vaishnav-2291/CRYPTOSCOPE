@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Recursive Live Fund-Flow Graph Visualizer Engine
+ * CryptoLens AI — Recursive Live Fund-Flow Graph Visualizer Engine
  * 
  * Explores 1-2 hops of live Bitcoin inputs and outputs to construct an interactive
  * forensic fund flow network graph using live mempool.space data.
@@ -24,7 +24,7 @@ class GraphExplorer {
             timeout: 7000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-GraphEngine/2.0",
+                "User-Agent": "CryptoLens-AI-GraphEngine/2.0",
             },
         });
 
@@ -33,7 +33,7 @@ class GraphExplorer {
             timeout: 7000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-GraphEngine/2.0",
+                "User-Agent": "CryptoLens-AI-GraphEngine/2.0",
             },
         });
     }

@@ -221,7 +221,7 @@ test("Production Hardening & Verification Suite", async (t) => {
         const res = await fetch(`${baseUrl}/api/health`);
         assert.strictEqual(res.status, 200);
         const health = await res.json();
-        assert.strictEqual(health.platform, "CryptoScope AI");
+        assert.strictEqual(health.platform, "CryptoLens AI");
         assert.strictEqual(health.subsystems.database.status, "connected");
         assert.strictEqual(health.subsystems.realtime.status, "active");
         assert.strictEqual(health.subsystems.heuristicsEngine.rulesCount, 14);

@@ -137,7 +137,7 @@ class NewsService {
         this.client = axios.create({
             timeout: 5000,
             headers: {
-                "User-Agent": "CryptoScope-AI-Intelligence/2.0 (Security Aggregator)",
+                "User-Agent": "CryptoLens-AI-Intelligence/2.0 (Security Aggregator)",
                 Accept: "application/rss+xml, application/xml, text/xml, */*",
             },
         });

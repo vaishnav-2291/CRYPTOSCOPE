@@ -79,11 +79,11 @@ describe("CRYPTOSCOPE Real Email & Password Reset Security Suite", () => {
         const html = emailService.generateOtpEmailHtml({ name: "Alice", otp: fakeOtp });
         const text = emailService.generateOtpEmailText({ name: "Alice", otp: fakeOtp });
 
-        assert.ok(html.includes("CRYPTOSCOPE AI"));
+        assert.ok(html.includes("CRYPTOLENS AI"));
         assert.ok(html.includes("Password Reset Verification"));
         assert.ok(html.includes("10 minutes"));
         assert.ok(html.includes(fakeOtp));
-        assert.ok(text.includes("CRYPTOSCOPE AI"));
+        assert.ok(text.includes("CRYPTOLENS AI"));
         assert.ok(text.includes("10 minutes"));
         assert.ok(text.includes(fakeOtp));
     });

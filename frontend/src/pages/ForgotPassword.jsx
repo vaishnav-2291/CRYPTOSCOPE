@@ -360,7 +360,7 @@ const ForgotPassword = () => {
                 to="/login"
                 className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs md:text-sm hover:from-cyan-400 hover:to-blue-500 transition shadow-lg shadow-cyan-500/20"
               >
-                Sign In to CRYPTOSCOPE <ArrowRight className="w-4 h-4" />
+                Sign In to CRYPTOLENS AI <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}

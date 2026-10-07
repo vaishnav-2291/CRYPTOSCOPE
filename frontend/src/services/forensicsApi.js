@@ -1,7 +1,7 @@
 import api from "./api";
 
 /**
- * CryptoScope AI — Forensic Intelligence Client API (Round 1 + Round 2)
+ * CryptoLens AI — Forensic Intelligence Client API (Round 1 + Round 2)
  */
 export const forensicsApi = {
   // ===========================================================================

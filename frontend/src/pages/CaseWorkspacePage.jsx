@@ -172,7 +172,7 @@ export const CaseWorkspacePage = () => {
       doc.setTextColor(6, 182, 212);
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("CRYPTOSCOPE AI — CASE AUDIT DOSSIER", 14, 16);
+      doc.text("CRYPTOLENS AI — CASE AUDIT DOSSIER", 14, 16);
 
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(11);

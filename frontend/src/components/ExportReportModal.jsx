@@ -37,7 +37,7 @@ const ExportReportModal = ({
       doc.setTextColor(0, 242, 254);
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text("CryptoScope AI", 14, 18);
+      doc.text("CryptoLens AI", 14, 18);
 
       doc.setTextColor(148, 163, 184);
       doc.setFontSize(9);
@@ -119,12 +119,12 @@ const ExportReportModal = ({
       doc.setFontSize(7.5);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        "Disclaimer: CryptoScope AI evaluations are deterministic rule-based heuristic assessments for research and compliance audits.",
+        "Disclaimer: CryptoLens AI evaluations are deterministic rule-based heuristic assessments for research and compliance audits.",
         14,
         footerY
       );
 
-      doc.save(`CryptoScope_Report_${address.slice(0, 8)}.pdf`);
+      doc.save(`CryptoLens_Report_${address.slice(0, 8)}.pdf`);
       toast.success("Security Report exported successfully as PDF");
     } catch (err) {
       console.error("PDF generation failed:", err);

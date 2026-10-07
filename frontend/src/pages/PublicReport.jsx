@@ -56,7 +56,7 @@ const PublicReport = () => {
       doc.setTextColor(0, 242, 254);
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text("CryptoScope AI", 14, 18);
+      doc.text("CryptoLens AI", 14, 18);
 
       doc.setTextColor(148, 163, 184);
       doc.setFontSize(9);
@@ -77,7 +77,7 @@ const PublicReport = () => {
         headStyles: { fillColor: [6, 182, 212] },
       });
 
-      doc.save(`CryptoScope_PublicReport_${report.address.slice(0, 8)}.pdf`);
+      doc.save(`CryptoLens_PublicReport_${report.address.slice(0, 8)}.pdf`);
       toast.success("Public report exported successfully as PDF");
     } catch (err) {
       toast.error("PDF export failed: " + err.message);
@@ -121,7 +121,7 @@ const PublicReport = () => {
         {/* Header Navigation */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <Link to="/" className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition text-xs font-mono">
-            <ArrowLeft className="w-4 h-4" /> CryptoScope AI Platform
+            <ArrowLeft className="w-4 h-4" /> CryptoLens AI Platform
           </Link>
 
           <div className="flex items-center gap-2">

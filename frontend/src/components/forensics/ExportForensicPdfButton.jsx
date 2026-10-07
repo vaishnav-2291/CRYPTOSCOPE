@@ -28,7 +28,7 @@ export const ExportForensicPdfButton = ({ auditData, address }) => {
       doc.setTextColor(...primaryColor);
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
-      doc.text("CRYPTOSCOPE AI", 14, 16);
+      doc.text("CRYPTOLENS AI", 14, 16);
 
       doc.setTextColor(...textPrimary);
       doc.setFontSize(12);
@@ -152,13 +152,13 @@ export const ExportForensicPdfButton = ({ auditData, address }) => {
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        "CryptoScope AI Forensic Dossier — Deterministic Heuristic Engine. All rules labeled as statistical heuristic indicators.",
+        "CryptoLens AI Forensic Dossier — Deterministic Heuristic Engine. All rules labeled as statistical heuristic indicators.",
         14,
         288
       );
 
       // Save PDF
-      doc.save(`cryptoscope_forensic_audit_${address.slice(0, 8)}.pdf`);
+      doc.save(`cryptolens_forensic_audit_${address.slice(0, 8)}.pdf`);
     } catch (err) {
       console.error("PDF Export error:", err);
     } finally {

@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Deterministic Explainable Risk Engine (v2.0)
+ * CryptoLens AI — Deterministic Explainable Risk Engine (v2.0)
  * 
  * NOTE: This is a 100% deterministic, rule-based heuristic scoring engine
  * evaluating 5 structured analytical dimensions across Bitcoin UTXO data.

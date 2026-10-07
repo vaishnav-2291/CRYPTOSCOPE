@@ -316,7 +316,7 @@ export const getMarketPrices = async (options = {}) => {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // 1. Primary: CryptoScope Production Backend (/api/crypto/market)
+    // 1. Primary: CryptoLens Production Backend (/api/crypto/market)
     const res = await api.get("/crypto/market", { signal: controller.signal });
     clearTimeout(timer);
     if (res.data?.success && res.data?.data) {

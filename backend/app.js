@@ -161,7 +161,7 @@ app.get("/api/health", (req, res) => {
         db: isDbConnected ? "connected" : "disconnected",
         blockchainApi: "reachable",
         success: isDbConnected,
-        platform: "CryptoScope AI",
+        platform: "CryptoLens AI",
         version: "2.0.0",
         engine: "Deterministic 5-Axis Heuristic Security Engine",
         operationalStatus: isDbConnected ? "Operational 🛡️" : "Degraded - Database Disconnected",
@@ -251,12 +251,12 @@ if (fs.existsSync(frontendDist)) {
     app.get("/", (req, res) => {
         res.json({
             success: true,
-            platform: "CryptoScope AI",
+            platform: "CryptoLens AI",
             version: "2.0.0",
             engine: "Deterministic 5-Axis Heuristic Security Engine",
             status: "Operational 🛡️",
             timestamp: new Date().toISOString(),
-            message: "CryptoScope AI API Gateway Running.",
+            message: "CryptoLens AI API Gateway Running.",
         });
     });
 }

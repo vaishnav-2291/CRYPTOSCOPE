@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Multi-User Isolated Server-Sent Events (SSE) Realtime Broadcaster
+ * CryptoLens AI — Multi-User Isolated Server-Sent Events (SSE) Realtime Broadcaster
  */
 const jwt = require("jsonwebtoken");
 const { getJwtSecret } = require("../config/jwtConfig");

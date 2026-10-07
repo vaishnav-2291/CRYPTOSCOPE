@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Investigation Case Workspace Service (Feature #16)
+ * CryptoLens AI — Investigation Case Workspace Service (Feature #16)
  * 
  * Manages analyst cases grouping multiple target addresses with custom notes/hypotheses.
  * 

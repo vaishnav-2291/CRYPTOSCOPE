@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getMarketPrices, getWatchlist, getMempoolTelemetry } from "../services/api";
 import { formatUsd } from "../utils/constants";
+import CryptoLensLogo from "./CryptoLensLogo";
 import {
   Search,
   Shield,
@@ -126,19 +127,7 @@ const Navbar = ({ onQuickScan, onOpenCommand }) => {
         {/* Brand Logo */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 p-[1px] shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition">
-              <div className="w-full h-full bg-[#080C14] rounded-[11px] flex items-center justify-center">
-                <Shield className="w-5 h-5 text-cyan-400" />
-              </div>
-            </div>
-            <div>
-              <span className="text-lg font-bold font-heading text-white tracking-wide flex items-center gap-1.5">
-                Crypto<span className="text-cyan-400">Scope</span>{" "}
-                <span className="text-[10px] font-mono text-cyan-300 font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30">
-                  AI 2.0
-                </span>
-              </span>
-            </div>
+            <CryptoLensLogo size="md" />
           </Link>
         </div>
 

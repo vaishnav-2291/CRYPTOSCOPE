@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Live Whale-Move vs. Price-Impact Correlator
+ * CryptoLens AI — Live Whale-Move vs. Price-Impact Correlator
  * 
  * Correlates large on-chain transactions with historical spot price swings
  * using live Mempool.space transaction timestamps and CoinGecko market charts.
@@ -24,7 +24,7 @@ class WhalePriceCorrelator {
             timeout: 12000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-WhaleCorrelator/2.0",
+                "User-Agent": "CryptoLens-AI-WhaleCorrelator/2.0",
             },
         });
 
@@ -33,7 +33,7 @@ class WhalePriceCorrelator {
             timeout: 12000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-WhaleCorrelator/2.0",
+                "User-Agent": "CryptoLens-AI-WhaleCorrelator/2.0",
             },
         });
     }

@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" width="320" height="64" fill="none">
+  <defs>
+    <linearGradient id="logo-c-grad" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="52%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="logo-ai-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="logo-sparkle-grad" x1="42" y1="4" x2="60" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="100%" stop-color="#C084FC" />
+    </linearGradient>
+    <radialGradient id="logo-lens-core" cx="29" cy="32" r="9" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="45%" stop-color="#3B82F6" />
+      <stop offset="85%" stop-color="#1E1B4B" />
+      <stop offset="100%" stop-color="#050B14" />
+    </radialGradient>
+  </defs>
+
+  <!-- ICON GROUP -->
+  <g transform="translate(4, 0)">
+    <!-- Outer C-Lens Aperture Arc -->
+    <path
+      d="M 45 15.5 A 24 24 0 1 0 45 48.5"
+      stroke="url(#logo-c-grad)"
+      stroke-width="5"
+      stroke-linecap="round"
+    />
+
+    <!-- Inner Aperture Ring -->
+    <path
+      d="M 40.5 21 A 17 17 0 1 0 40.5 43"
+      stroke="url(#logo-c-grad)"
+      stroke-width="2.2"
+      stroke-linecap="round"
+      stroke-dasharray="22 5 7 5"
+      opacity="0.8"
+    />
+
+    <!-- Reticle Ticks -->
+    <line x1="8" y1="32" x2="14" y2="32" stroke="#00E5FF" stroke-width="2.5" stroke-linecap="round" opacity="0.85" />
+    <line x1="29" y1="10" x2="29" y2="15" stroke="#3B82F6" stroke-width="2.2" stroke-linecap="round" opacity="0.75" />
+    <line x1="29" y1="49" x2="29" y2="54" stroke="#8B5CF6" stroke-width="2.2" stroke-linecap="round" opacity="0.75" />
+
+    <!-- Central Lens Core -->
+    <circle cx="29" cy="32" r="7.5" fill="url(#logo-lens-core)" />
+    <circle cx="29" cy="32" r="4.2" stroke="#00E5FF" stroke-width="1.2" fill="#0A1424" opacity="0.9" />
+    <circle cx="29" cy="32" r="2" fill="#FFFFFF" />
+
+    <!-- AI Sparkle -->
+    <path
+      d="M 49 5 Q 49 13 57 13 Q 49 13 49 21 Q 49 13 41 13 Q 49 13 49 5 Z"
+      fill="url(#logo-sparkle-grad)"
+    />
+    <circle cx="49" cy="13" r="1.5" fill="#FFFFFF" />
+  </g>
+
+  <!-- WORDMARK & TAGLINE -->
+  <g transform="translate(74, 0)">
+    <!-- Wordmark text -->
+    <text x="0" y="34" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">
+      Crypto<tspan fill="#00E5FF">Lens</tspan>
+    </text>
+
+    <!-- AI Badge -->
+    <rect x="145" y="16" width="32" height="20" rx="6" fill="#00E5FF" fill-opacity="0.12" stroke="#00E5FF" stroke-opacity="0.35" stroke-width="1" />
+    <text x="161" y="30.5" font-family="'JetBrains Mono', 'Fira Code', monospace" font-size="11" font-weight="800" fill="#00E5FF" text-anchor="middle">
+      AI
+    </text>
+
+    <!-- Tagline -->
+    <text x="0" y="49" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="500" fill="#94A3B8" letter-spacing="0.8">
+      SEE DEEPER. TRADE SMARTER. STAY AHEAD.
+    </text>
+  </g>
+</svg>

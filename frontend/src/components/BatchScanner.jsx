@@ -63,7 +63,7 @@ const BatchScanner = ({ onSelectAddress }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `cryptoscope_batch_scan_${Date.now()}.csv`);
+    link.setAttribute("download", `cryptolens_batch_scan_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

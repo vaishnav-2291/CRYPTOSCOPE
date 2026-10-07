@@ -1,10 +1,10 @@
 /**
- * CryptoScope AI — Heuristic Risk Score Explainability Engine
+ * CryptoLens AI — Heuristic Risk Score Explainability Engine
  * 
  * Provides an audit-grade, transparent mathematical decomposition of the
  * deterministic 5-axis heuristic risk score.
  * 
- * Philosophy: CryptoScope AI utilizes deterministic, auditable rules rather than opaque
+ * Philosophy: CryptoLens AI utilizes deterministic, auditable rules rather than opaque
  * black-box models. Every rule is explicitly documented as a HEURISTIC SIGNAL
  * or statistical anomaly (not proof of intent).
  */
@@ -176,7 +176,7 @@ class ExplainabilityService {
             triggeredRulesCount: explainableRules.length,
             triggeredRules: explainableRules,
             mitigatingFactors,
-            methodologyStatement: "CryptoScope AI calculates risk using transparent, deterministic heuristic algorithms rather than black-box models. All rule triggers represent statistical on-chain signals and behavioral patterns to provide fully explainable, auditable intelligence for security analysts.",
+            methodologyStatement: "CryptoLens AI calculates risk using transparent, deterministic heuristic algorithms rather than black-box models. All rule triggers represent statistical on-chain signals and behavioral patterns to provide fully explainable, auditable intelligence for security analysts.",
             generatedAt: new Date().toISOString(),
         };
     }

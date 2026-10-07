@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Global UI Constants & Formatting Utilities
+ * CryptoLens AI — Global UI Constants & Formatting Utilities
  */
 
 export const formatBtc = (val) => {

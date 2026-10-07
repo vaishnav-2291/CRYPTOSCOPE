@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Shield, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
+import CryptoLensLogo from "../components/CryptoLensLogo";
 
 const Login = () => {
   const { login, loginWithTokens } = useAuth();
@@ -69,14 +70,13 @@ const Login = () => {
     <div className="min-h-screen bg-[#080C14] text-white flex items-center justify-center p-4 selection:bg-cyan-500/30">
       <div className="w-full max-w-md space-y-6">
         {/* Logo & Header */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 p-[1px] mx-auto shadow-xl shadow-cyan-500/20">
-            <div className="w-full h-full bg-[#080C14] rounded-[15px] flex items-center justify-center">
-              <Shield className="w-6 h-6 text-cyan-400" />
-            </div>
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <CryptoLensLogo size="lg" />
           </div>
-          <h1 className="text-2xl font-bold font-heading text-white">CryptoScope AI</h1>
-          <p className="text-xs text-slate-400">Sign in to access blockchain risk intelligence & telemetry.</p>
+          <p className="text-xs text-slate-400 font-mono tracking-wide">
+            See Deeper. Trade Smarter. Stay Ahead.
+          </p>
         </div>
 
         {/* Card Form */}

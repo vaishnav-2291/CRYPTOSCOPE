@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Multi-Hop Risk Propagation Engine ("Degrees of Separation")
+ * CryptoLens AI — Multi-Hop Risk Propagation Engine ("Degrees of Separation")
  * 
  * Computes an on-chain exposure score by recursively traversing 2–3 hops of live transactions
  * and calculating decayed proximity to US Treasury OFAC sanctioned addresses.
@@ -30,7 +30,7 @@ class RiskPropagationEngine {
             timeout: 5000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-RiskPropagation/2.0",
+                "User-Agent": "CryptoLens-AI-RiskPropagation/2.0",
             },
         });
 
@@ -39,7 +39,7 @@ class RiskPropagationEngine {
             timeout: 5000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-RiskPropagation/2.0",
+                "User-Agent": "CryptoLens-AI-RiskPropagation/2.0",
             },
         });
     }

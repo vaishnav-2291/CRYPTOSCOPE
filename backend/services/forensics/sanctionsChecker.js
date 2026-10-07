@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Official Public Sanctions & Exposure Cross-Check Engine
+ * CryptoLens AI — Official Public Sanctions & Exposure Cross-Check Engine
  * 
  * Verifies Bitcoin addresses against official US Treasury OFAC SDN designations
  * using live public feeds and cached live snapshots.
@@ -26,7 +26,7 @@ class SanctionsChecker {
             timeout: 8000,
             headers: {
                 Accept: "text/plain, application/json",
-                "User-Agent": "CryptoScope-AI-SanctionsChecker/2.0",
+                "User-Agent": "CryptoLens-AI-SanctionsChecker/2.0",
             },
         });
         this.cachedAddressesSet = new Set();

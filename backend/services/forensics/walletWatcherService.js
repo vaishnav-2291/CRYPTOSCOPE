@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Real-Time Watch & Alert Service (SSE & Email)
+ * CryptoLens AI — Real-Time Watch & Alert Service (SSE & Email)
  * 
  * Periodically monitors live on-chain activity for addresses on users' watchlists.
  * Dispatches real-time SSE stream events and instant Gmail SMTP alert emails
@@ -29,7 +29,7 @@ class WalletWatcherService {
             timeout: 12000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-Watcher/2.0",
+                "User-Agent": "CryptoLens-AI-Watcher/2.0",
             },
         });
 
@@ -182,13 +182,13 @@ class WalletWatcherService {
                 for (const sub of subscribers) {
                     if (sub.email && emailService) {
                         const emailSubject = isDusting
-                            ? `[CryptoScope ALERT] Dusting Attack Detected on ${sub.label || address}`
-                            : `[CryptoScope] New On-Chain Transaction on ${sub.label || address}`;
+                            ? `[CryptoLens ALERT] Dusting Attack Detected on ${sub.label || address}`
+                            : `[CryptoLens] New On-Chain Transaction on ${sub.label || address}`;
 
                         const emailContent = `
                             <h2>${emailSubject}</h2>
                             <p>Hello ${sub.name},</p>
-                            <p>CryptoScope AI has detected a live on-chain event on your watched address:</p>
+                            <p>CryptoLens AI has detected a live on-chain event on your watched address:</p>
                             <ul>
                                 <li><strong>Address:</strong> ${address}</li>
                                 <li><strong>Label:</strong> ${sub.label || "Watched Wallet"}</li>
@@ -196,7 +196,7 @@ class WalletWatcherService {
                                 <li><strong>Amount:</strong> ${(totalReceivedSat / SAT_TO_BTC).toFixed(8)} BTC</li>
                                 ${isDusting ? `<li style="color:red;"><strong>WARNING:</strong> Micro-deposit (<= ${DUST_LIMIT_SAT} sat) detected. Do not co-spend to prevent deanonymization.</li>` : ""}
                             </ul>
-                            <p>View complete forensic diagnostics in your CryptoScope Dashboard.</p>
+                            <p>View complete forensic diagnostics in your CryptoLens Dashboard.</p>
                         `;
 
                         emailService.sendMail({

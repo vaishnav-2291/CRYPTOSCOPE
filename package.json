@@ -1,7 +1,7 @@
 {
   "name": "cryptoscope-ai-workspace",
   "version": "2.0.0",
-  "description": "CryptoScope AI - Deterministic Blockchain Risk Intelligence Platform",
+  "description": "CryptoLens AI - Deterministic Blockchain Risk Intelligence Platform",
   "scripts": {
     "dev:backend": "cd backend && node server.js",
     "dev:frontend": "cd frontend && npm run dev",
@@ -15,6 +15,6 @@
     "cybersecurity",
     "fintech"
   ],
-  "author": "CryptoScope AI Team",
+  "author": "CryptoLens AI Team",
   "license": "ISC"
 }

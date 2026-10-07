@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Alert Triage & Severity Queue Service (Feature #18)
+ * CryptoLens AI — Alert Triage & Severity Queue Service (Feature #18)
  * 
  * Computes dynamic composite severity rankings for watchlist alerts and incoming threats.
  * Solves analyst alert fatigue by presenting a prioritized, actionable triage workflow.

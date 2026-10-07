@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Network Congestion & Fee-Overpay Urgency Analyzer
+ * CryptoLens AI — Network Congestion & Fee-Overpay Urgency Analyzer
  * 
  * Correlates live Bitcoin mempool congestion with transaction fee rates to detect
  * anomalous fee overpayment patterns.
@@ -26,7 +26,7 @@ class FeeUrgencyAnalyzer {
             timeout: 6000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-FeeUrgency/2.0",
+                "User-Agent": "CryptoLens-AI-FeeUrgency/2.0",
             },
         });
     }

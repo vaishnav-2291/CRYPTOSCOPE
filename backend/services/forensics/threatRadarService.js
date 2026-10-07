@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Live Network-Wide Threat Radar Service (Feature #15)
+ * CryptoLens AI — Live Network-Wide Threat Radar Service (Feature #15)
  * 
  * Proactively scans all unconfirmed Bitcoin transactions in the live Mempool.space
  * mempool stream via WebSocket (wss://mempool.space/api/v1/ws) and REST telemetry.
@@ -41,7 +41,7 @@ class ThreatRadarService {
             timeout: 5000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-ThreatRadar/2.0",
+                "User-Agent": "CryptoLens-AI-ThreatRadar/2.0",
             },
         });
 

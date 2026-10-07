@@ -38,7 +38,7 @@ export class ErrorBoundary extends React.Component {
                 Application Rendering Interrupted
               </h2>
               <p className="text-xs text-slate-400">
-                CryptoScope encountered an unexpected UI exception. The error boundary prevented a complete application crash.
+                CryptoLens AI encountered an unexpected UI exception. The error boundary prevented a complete application crash.
               </p>
             </div>
 

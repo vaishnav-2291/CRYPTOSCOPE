@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Configurable Risk Rule Engine Service (Feature #17)
+ * CryptoLens AI — Configurable Risk Rule Engine Service (Feature #17)
  * 
  * Allows compliance analysts to tune key risk thresholds according to organizational risk appetite.
  * Only the chosen trigger numbers are stored in MongoDB — live on-chain evaluation remains 100% real-time.

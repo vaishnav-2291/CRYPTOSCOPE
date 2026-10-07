@@ -221,7 +221,7 @@ function ScoreBreakdown({
         </h3>
 
         <p className="text-gray-300 leading-8">
-          CryptoScope AI evaluates wallet behaviour using multiple weighted risk
+          CryptoLens AI evaluates wallet behaviour using multiple weighted risk
           indicators including transaction volume, wallet balance, behavioural
           patterns, and overall activity. Each category contributes a predefined
           score to the final AI Risk Score, helping analysts understand why a

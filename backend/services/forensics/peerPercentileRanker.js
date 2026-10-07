@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Live Peer Percentile Ranking Engine
+ * CryptoLens AI — Live Peer Percentile Ranking Engine
  * 
  * Samples recent live Bitcoin blocks from Mempool.space to rank an address's
  * transaction volume and balance against live mainnet distribution percentiles.
@@ -23,7 +23,7 @@ class PeerPercentileRanker {
             timeout: 10000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-PercentileRanker/2.0",
+                "User-Agent": "CryptoLens-AI-PercentileRanker/2.0",
             },
         });
 
@@ -32,7 +32,7 @@ class PeerPercentileRanker {
             timeout: 10000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-PercentileRanker/2.0",
+                "User-Agent": "CryptoLens-AI-PercentileRanker/2.0",
             },
         });
     }

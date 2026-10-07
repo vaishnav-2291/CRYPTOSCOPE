@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Coin Days Destroyed (CDD) & Dormant-Coin Reactivation Detector
+ * CryptoLens AI — Coin Days Destroyed (CDD) & Dormant-Coin Reactivation Detector
  * 
  * Computes Coin Days Destroyed (CDD = BTC Amount * Days Unspent) for each spent UTXO
  * to detect dormant coin reactivation (e.g., legacy whale wakeups, cold storage sweeps,
@@ -27,7 +27,7 @@ class CoinDaysDestroyedDetector {
             timeout: 6000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-CDD/2.0",
+                "User-Agent": "CryptoLens-AI-CDD/2.0",
             },
         });
 
@@ -36,7 +36,7 @@ class CoinDaysDestroyedDetector {
             timeout: 6000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-CDD/2.0",
+                "User-Agent": "CryptoLens-AI-CDD/2.0",
             },
         });
     }

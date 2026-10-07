@@ -28,7 +28,7 @@ async function startServer() {
     walletWatcherService.startWatcher(30000);
 
     const server = app.listen(PORT, "0.0.0.0", () => {
-        console.log(`🚀 CryptoScope AI Server is actively listening on http://localhost:${PORT}`);
+        console.log(`🚀 CryptoLens AI Server is actively listening on http://localhost:${PORT}`);
     });
 
     server.on("error", (err) => {

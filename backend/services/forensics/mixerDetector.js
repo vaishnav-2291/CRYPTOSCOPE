@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — CoinJoin / Privacy Mixer Participation Detector
+ * CryptoLens AI — CoinJoin / Privacy Mixer Participation Detector
  * 
  * Detects structural on-chain fingerprints of privacy mixing protocols directly
  * from live transaction topologies.
@@ -38,7 +38,7 @@ class MixerDetector {
             timeout: 10000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-MixerDetector/2.0",
+                "User-Agent": "CryptoLens-AI-MixerDetector/2.0",
             },
         });
 
@@ -47,7 +47,7 @@ class MixerDetector {
             timeout: 10000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-MixerDetector/2.0",
+                "User-Agent": "CryptoLens-AI-MixerDetector/2.0",
             },
         });
     }

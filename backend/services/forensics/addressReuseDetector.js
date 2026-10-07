@@ -1,5 +1,5 @@
 /**
- * CryptoScope AI — Address Reuse Privacy Detector
+ * CryptoLens AI — Address Reuse Privacy Detector
  * 
  * Analyzes live transaction histories to detect Address Reuse — a well-documented
  * on-chain privacy anti-pattern that compromises anonymity and facilitates cluster tracking.
@@ -22,7 +22,7 @@ class AddressReuseDetector {
             timeout: 10000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-AddressReuse/2.0",
+                "User-Agent": "CryptoLens-AI-AddressReuse/2.0",
             },
         });
 
@@ -31,7 +31,7 @@ class AddressReuseDetector {
             timeout: 10000,
             headers: {
                 Accept: "application/json",
-                "User-Agent": "CryptoScope-AI-AddressReuse/2.0",
+                "User-Agent": "CryptoLens-AI-AddressReuse/2.0",
             },
         });
     }
