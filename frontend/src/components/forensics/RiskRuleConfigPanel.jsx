@@ -17,10 +17,6 @@ export const RiskRuleConfigPanel = ({ currentRiskScore, onConfigChanged }) => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
   const loadConfig = async () => {
     try {
       setLoading(true);
@@ -32,6 +28,10 @@ export const RiskRuleConfigPanel = ({ currentRiskScore, onConfigChanged }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
 
   const handleSave = async () => {
     try {

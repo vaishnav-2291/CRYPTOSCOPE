@@ -108,7 +108,7 @@ function CryptoNews() {
               <div className="flex items-center justify-between pt-3 border-t border-white/5 font-mono text-xs text-slate-500">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3 text-slate-400" />
-                  <span>{new Date(article.publishedAt || Date.now()).toLocaleDateString()}</span>
+                  <span>{article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : "Recent"}</span>
                 </span>
 
                 <a

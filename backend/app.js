@@ -58,8 +58,14 @@ app.use(
                     "http://localhost:*",
                     "ws://localhost:*",
                     "https://accounts.google.com",
+                    "https://*.vercel.app",
+                    "https://*.onrender.com",
                     "https://api.binance.com",
+                    "https://api.binance.us",
                     "https://api.coingecko.com",
+                    "https://api.gateio.ws",
+                    "https://api.kucoin.com",
+                    "https://api.coinpaprika.com",
                     "https://mempool.space",
                     "https://blockstream.info",
                 ],
@@ -80,8 +86,17 @@ app.use(
     })
 );
 
-// 2. Strict CORS Allowlist Policy
-const rawAllowedOrigins = process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173";
+// 2. Strict CORS Allowlist Policy (With Vercel & Render production support)
+const defaultAllowedOrigins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://cryptoscope-olive.vercel.app",
+    "https://cryptoscope-8he6.onrender.com",
+];
+
+const rawAllowedOrigins = process.env.ALLOWED_ORIGINS || defaultAllowedOrigins.join(",");
 const allowedOriginsList = rawAllowedOrigins
     .split(",")
     .map((o) => o.trim().toLowerCase())
@@ -102,13 +117,23 @@ app.use(
                 return callback(null, true);
             }
 
+            // Allow official and preview Vercel / Render deployments
+            try {
+                const url = new URL(normalizedOrigin);
+                if (url.hostname.endsWith(".vercel.app") || url.hostname.endsWith(".onrender.com")) {
+                    return callback(null, true);
+                }
+            } catch {
+                // Invalid URL format
+            }
+
             // In development or test mode, permit localhost on any port
             if (process.env.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
                 return callback(null, true);
             }
 
-            // Reject untrusted external origins
-            return callback(new Error(`CORS Error: Origin '${origin}' is not permitted by CRYPTOSCOPE security policy.`));
+            // Reject untrusted external origins gracefully without crashing
+            return callback(null, false);
         },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

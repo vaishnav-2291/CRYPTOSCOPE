@@ -47,9 +47,23 @@ function CryptoMarket() {
   }, []);
 
   if (!market) {
+    if (loading) {
+      return (
+        <div className="mt-12 text-center text-cyan-400 font-mono text-xs animate-pulse flex items-center justify-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          <span>Connecting to live cryptocurrency market feeds...</span>
+        </div>
+      );
+    }
     return (
-      <div className="mt-12 text-center text-cyan-400 font-mono text-xs animate-pulse">
-        Connecting to live cryptocurrency market feeds...
+      <div className="mt-12 text-center text-slate-400 font-mono text-xs flex flex-col items-center justify-center gap-2">
+        <span>Live market feeds temporarily unreachable.</span>
+        <button
+          onClick={fetchMarket}
+          className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg text-[11px] transition"
+        >
+          Retry Connection
+        </button>
       </div>
     );
   }

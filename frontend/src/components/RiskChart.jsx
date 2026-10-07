@@ -42,12 +42,6 @@ function RiskChart() {
 
   });
 
-  useEffect(() => {
-
-    fetchChart();
-
-  }, []);
-
   const fetchChart = async () => {
 
     try {
@@ -115,6 +109,10 @@ function RiskChart() {
     }
 
   };
+
+  useEffect(() => {
+    fetchChart();
+  }, []);
 
   return (
 

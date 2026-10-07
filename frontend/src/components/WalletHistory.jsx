@@ -10,10 +10,6 @@ function WalletHistory() {
     const [selectedWallet, setSelectedWallet] = useState(null);
     const [isDbUnavailable, setIsDbUnavailable] = useState(false);
 
-    useEffect(() => {
-        fetchHistory();
-    }, []);
-
     const fetchHistory = async () => {
         try {
             setLoading(true);
@@ -43,16 +39,9 @@ function WalletHistory() {
         }
     };
 
-        finally{
-
-
-            setLoading(false);
-
-
-        }
-
-
-    };
+    useEffect(() => {
+        fetchHistory();
+    }, []);
 
 
 

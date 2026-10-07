@@ -223,7 +223,7 @@ function History() {
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                      <span>Scanned: {new Date(wallet.scannedAt || wallet.updatedAt || wallet.createdAt || Date.now()).toLocaleString()}</span>
+                      <span>Scanned: {(wallet.scannedAt || wallet.updatedAt || wallet.createdAt) ? new Date(wallet.scannedAt || wallet.updatedAt || wallet.createdAt).toLocaleString() : "Recently"}</span>
                       <button
                         onClick={() => navigate(`/scan?address=${encodeURIComponent(wallet.address)}`)}
                         className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 transition"
@@ -280,7 +280,7 @@ function History() {
 
                   <div className="text-[11px] text-slate-500 flex items-center gap-2 flex-shrink-0">
                     <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>{new Date(act.createdAt || act.timestamp || Date.now()).toLocaleString()}</span>
+                    <span>{(act.createdAt || act.timestamp) ? new Date(act.createdAt || act.timestamp).toLocaleString() : "Recently"}</span>
                   </div>
                 </div>
               ))}

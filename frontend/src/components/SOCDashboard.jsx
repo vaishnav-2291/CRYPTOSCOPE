@@ -265,7 +265,7 @@ const SOCDashboard = () => {
                     <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
                       <span className="text-white font-bold">{incident.incidentId || incident.id}</span>
                       <span className="text-slate-500">•</span>
-                      <span className="text-slate-400">{new Date(incident.createdAt || Date.now()).toLocaleTimeString()}</span>
+                      <span className="text-slate-400">{incident.createdAt ? new Date(incident.createdAt).toLocaleTimeString() : "Just now"}</span>
                       <span className={`px-2 py-0.2 rounded text-[10px] font-bold border ${getSeverityStyle(incident.severity)}`}>
                         {incident.severity}
                       </span>
@@ -336,7 +336,7 @@ const SOCDashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold font-heading text-white">{selectedIncident.incidentId || selectedIncident.id}</h3>
-                  <p className="text-xs font-mono text-slate-400">{new Date(selectedIncident.createdAt || Date.now()).toLocaleString()}</p>
+                  <p className="text-xs font-mono text-slate-400">{selectedIncident.createdAt ? new Date(selectedIncident.createdAt).toLocaleString() : "Just now"}</p>
                 </div>
               </div>
 

@@ -31,6 +31,8 @@ const MarketPage = () => {
   const [market, setMarket] = useState(null);
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [marketError, setMarketError] = useState(null);
+  const [newsError, setNewsError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
@@ -39,23 +41,48 @@ const MarketPage = () => {
   const [marketStatus, setMarketStatus] = useState("LIVE");
 
   const loadData = async (isManual = false) => {
-    try {
-      if (isManual) setLoading(true);
-      const [marketRes, newsRes] = await Promise.all([
-        getMarketPrices().catch(() => null),
-        getCryptoNews().catch(() => null),
-      ]);
+    if (isManual) setLoading(true);
 
-      if (marketRes?.data) {
-        setMarket(marketRes.data);
-        if (marketRes.source) setMarketSource(marketRes.source);
-        if (marketRes.status) setMarketStatus(marketRes.status);
+    const fetchMarketTask = async () => {
+      try {
+        const marketRes = await getMarketPrices({ timeout: 8000 });
+        if (marketRes?.data) {
+          setMarket(marketRes.data);
+          if (marketRes.source) setMarketSource(marketRes.source);
+          if (marketRes.status) setMarketStatus(marketRes.status);
+          setMarketError(null);
+        } else {
+          throw new Error("No live market payload received");
+        }
+      } catch (err) {
+        console.warn("[MarketPage] Market quote error:", err.message);
+        setMarket((prev) => {
+          if (!prev) {
+            setMarketError(err.message || "Live quotes temporarily unreachable");
+            setMarketStatus("UNAVAILABLE");
+          }
+          return prev;
+        });
       }
-      if (newsRes?.articles) setNews(newsRes.articles);
+    };
+
+    const fetchNewsTask = async () => {
+      try {
+        const newsRes = await getCryptoNews({ timeout: 8000 });
+        if (newsRes?.articles) {
+          setNews(newsRes.articles);
+          setNewsError(null);
+        }
+      } catch (err) {
+        console.warn("[MarketPage] News error:", err.message);
+        setNewsError("Live news feed temporarily unreachable");
+      }
+    };
+
+    try {
+      await Promise.allSettled([fetchMarketTask(), fetchNewsTask()]);
       setLastRefreshed(new Date());
       setSecondsLeft(30);
-    } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -72,8 +99,8 @@ const MarketPage = () => {
         setMarket(event.data.data);
         if (event.data.source) setMarketSource(event.data.source);
         if (event.data.status) setMarketStatus(event.data.status);
+        setMarketError(null);
         setLastRefreshed(new Date());
-        setSecondsLeft(30);
       } else if (event.type === "news_update" && event.data?.articles) {
         setNews((prev) => {
           const newFingerprints = new Set(event.data.articles.map((a) => a.fingerprint));
@@ -86,7 +113,13 @@ const MarketPage = () => {
     });
 
     const timerInterval = setInterval(() => {
-      setSecondsLeft((prev) => (prev > 1 ? prev - 1 : 30));
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          loadData(false);
+          return 30;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => {
@@ -152,9 +185,11 @@ const MarketPage = () => {
             <h1 className="text-2xl md:text-3xl font-extrabold font-heading text-white">
               Real-Time <span className="text-gradient-cyan">Crypto Intelligence & Markets</span>
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {marketStatus === "LIVE" ? "100% GENUINE LIVE" : "STALE CACHED"}
+            <span className={`px-2.5 py-0.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1 ${
+              market ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-amber-500/10 border-amber-500/30 text-amber-400"
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${market ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+              {market ? (marketStatus === "LIVE" ? "100% GENUINE LIVE" : "STALE CACHED") : "SYNCING / RETRYING"}
             </span>
           </div>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
@@ -179,14 +214,49 @@ const MarketPage = () => {
         </div>
       </div>
 
+      {/* Optional Alert Banner for Transient Network/Provider Issues */}
+      {marketError && !market && (
+        <div className="cyber-card rounded-2xl p-4 border border-amber-500/30 bg-amber-500/5 flex items-center justify-between gap-4 font-mono text-xs">
+          <div className="flex items-center gap-2.5 text-amber-300">
+            <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+            <div>
+              <p className="font-bold">Live Market Feed Sync Warning: {marketError}</p>
+              <p className="text-[11px] text-slate-400">Automatic background retry scheduled in {secondsLeft}s.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => loadData(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-xs font-bold transition flex-shrink-0"
+          >
+            Retry Now
+          </button>
+        </div>
+      )}
+
       {/* 6-Asset Live Cryptocurrency Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {coinsList.map((coinId) => {
           const coin = market ? market[coinId] : null;
           if (!coin) {
+            if (loading) {
+              return (
+                <div key={coinId} className="cyber-card rounded-2xl p-6 border border-white/5 animate-pulse h-48 flex flex-col items-center justify-center font-mono text-xs text-slate-400 gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+                  <span>Fetching live quote for {coinId.toUpperCase()}...</span>
+                </div>
+              );
+            }
             return (
-              <div key={coinId} className="cyber-card rounded-2xl p-6 border border-white/5 animate-pulse h-48 flex items-center justify-center font-mono text-xs text-slate-500">
-                Fetching live quote for {coinId.toUpperCase()}...
+              <div key={coinId} className="cyber-card rounded-2xl p-6 border border-white/10 h-48 flex flex-col items-center justify-center font-mono text-xs text-slate-400 text-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
+                <span className="text-white font-bold">{coinId.toUpperCase()}</span>
+                <span className="text-[11px] text-slate-500">{marketError || "Live quote unavailable"}</span>
+                <button
+                  onClick={() => loadData(true)}
+                  className="mt-1 px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-[10px] transition"
+                >
+                  Retry Quote
+                </button>
               </div>
             );
           }
@@ -305,7 +375,7 @@ const MarketPage = () => {
         {/* News Cards Grid */}
         {filteredNews.length === 0 ? (
           <div className="cyber-card rounded-2xl p-12 text-center text-slate-400 font-mono text-xs">
-            No news articles found for selected filter category.
+            {newsError || "No news articles found for selected filter category."}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -337,7 +407,7 @@ const MarketPage = () => {
                 <div className="flex items-center justify-between pt-3 border-t border-white/5 font-mono text-xs text-slate-500">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3 text-slate-400" />
-                    <span>{new Date(article.publishedAt || Date.now()).toLocaleDateString()}</span>
+                    <span>{article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : "Recent"}</span>
                   </span>
 
                   <a

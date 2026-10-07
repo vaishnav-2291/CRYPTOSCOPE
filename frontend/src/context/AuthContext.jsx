@@ -15,6 +15,14 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem("token") || null);
   const [loading, setLoading] = useState(true);
 
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+  };
+
   // Listen for real-time security events (e.g. password changed on another device)
   useEffect(() => {
     if (!token || !user) return;
@@ -111,14 +119,6 @@ export const AuthProvider = ({ children }) => {
       console.error("Failed to load user profile after OAuth:", err);
     }
     return null;
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
   };
 
   const updateUserData = (updatedFields) => {

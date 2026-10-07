@@ -25,16 +25,6 @@ function DashboardStats() {
 
 
 
-  useEffect(() => {
-
-    fetchStats();
-
-  }, []);
-
-
-
-
-
   const fetchStats = async () => {
 
 
@@ -84,11 +74,9 @@ function DashboardStats() {
 
   };
 
-
-
-
-
-
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   const getRiskLevel = (score) => {
 
